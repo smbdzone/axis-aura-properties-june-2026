@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Sandena";
+  src:
+    url("/fonts/Sandena.woff2") format("woff2"),
+    url("/fonts/Sandena.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --primary: #003049;
+  --accent-light: #669bbc;
+  --background: #ffffff;
+  --foreground: #171717;
+  --font-heading: "Sandena", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --font-body: Helvetica, Arial, sans-serif;
+  --gradient-metallic: linear-gradient(102.99deg,
+      #006eb3 12.94%,
+      #91c0de 31.36%,
+      #005e98 63.42%,
+      #7cb7dd 86.94%);
+  --gradient-dark-metallic: linear-gradient(125.03deg,
+      #003049 23.09%,
+      #004c73 55.56%,
+      #003049 74.08%,
+      #004c73 99.39%);
+  --gradient-navbar: linear-gradient(102.99deg,
+      #003049 0%,
+      #004c73 82%,
+      #4a8aab 72%,
+      #004c73 72%,
+      #003049 100%);
+  --gradient-price-text: linear-gradient(102.99deg,
+      #64aad5 7.99%,
+      #c7e9ff 31.36%,
+      #389cda 57.95%,
+      #c7e9ff 77.46%);
+}
+
+@theme inline {
+  --color-primary: var(--primary);
+  --color-accent-light: var(--accent-light);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-body);
+  --font-heading: var(--font-heading);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+}
+
+@keyframes logo-marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.logo-marquee-track {
+  animation: logo-marquee 35s linear infinite;
+  will-change: transform;
+}
+
+.logo-marquee-track:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-marquee-track {
+    animation: none;
+  }
+}
+
+.gradient-price-text {
+  display: inline-block;
+  background-image: linear-gradient(102.99deg,
+      #64aad5 7.99%,
+      #c7e9ff 31.36%,
+      #389cda 57.95%,
+      #c7e9ff 77.46%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #64aad5;
+}
+
+.gradient-dark-metallic-text {
+  display: inline-block;
+  background-image: var(--gradient-dark-metallic);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #003049;
+}
+
+.enquiry-dropdown-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #669bbc #003049;
+}
+
+.enquiry-dropdown-scroll::-webkit-scrollbar {
+  width: 3px;
+}
+
+.enquiry-dropdown-scroll::-webkit-scrollbar-track {
+  background: #003049;
+}
+
+.enquiry-dropdown-scroll::-webkit-scrollbar-thumb {
+  background: #669bbc;
+  border-radius: 999px;
+}
