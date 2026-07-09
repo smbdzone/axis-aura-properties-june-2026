@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Sandena";
+  src:
+    url("/fonts/Sandena.woff2") format("woff2"),
+    url("/fonts/Sandena.woff") format("woff");
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --primary: #003049;
+  --accent-light: #669bbc;
+  --background: #ffffff;
+  --foreground: #171717;
+  --font-sandena: "Sandena", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --gradient-metallic: linear-gradient(102.99deg,
+      #006eb3 12.94%,
+      #91c0de 31.36%,
+      #005e98 63.42%,
+      #7cb7dd 86.94%);
+  --gradient-dark-metallic: linear-gradient(125.03deg,
+      #003049 23.09%,
+      #004c73 55.56%,
+      #003049 74.08%,
+      #004c73 99.39%);
+}
+
+@theme inline {
+  --color-primary: var(--primary);
+  --color-accent-light: var(--accent-light);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sandena);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sandena);
+}
+
+.bg-metallic {
+  background: var(--gradient-metallic);
+}
+
+.bg-metallic-dark {
+  background: var(--gradient-dark-metallic);
+}
+
+.rich-text-editor .tiptap {
+  min-height: inherit;
+}
+
+.rich-text-editor .tiptap p {
+  margin: 0 0 0.5rem;
+}
+
+.rich-text-editor .tiptap p:last-child {
+  margin-bottom: 0;
+}
+
+.rich-text-editor .tiptap ul {
+  margin: 0.25rem 0 0.5rem;
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+
+.rich-text-editor .tiptap a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.rich-text-editor-dark .tiptap a {
+  color: #91c0de;
+}
