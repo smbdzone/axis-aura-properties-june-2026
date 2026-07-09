@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 import LuxuryPropertyCard from "@/components/card/LuxuryPropertyCard";
-import { luxuryProperties } from "@/components/data/luxuryProperties";
+import type { LuxuryProperty } from "@/components/data/luxuryProperties";
 
 type MostLuxuryProps = {
   variant?: "default" | "centered";
@@ -12,6 +12,26 @@ type MostLuxuryProps = {
 export default function MostLuxury({ variant = "default" }: MostLuxuryProps) {
   const isCentered = variant === "centered";
   const [activeIndex, setActiveIndex] = useState(0);
+  const [luxuryProperties, setLuxuryProperties] = useState<LuxuryProperty[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/properties/luxury")
+      .then((response) => response.json())
+      .then((data: { properties?: LuxuryProperty[] }) => {
+        if (cancelled) return;
+        setLuxuryProperties(data.properties ?? []);
+        setActiveIndex(0);
+      })
+      .catch(() => {
+        if (!cancelled) setLuxuryProperties([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const total = luxuryProperties.length;
 
   const goToPrevious = () => {
@@ -104,6 +124,11 @@ export default function MostLuxury({ variant = "default" }: MostLuxuryProps) {
         ) : null}
       </header>
 
+      {total === 0 ? (
+        <p className="mx-auto w-full max-w-7xl py-12 text-center font-heading text-xl text-black/50">
+          No luxury properties to show yet. Please check back soon.
+        </p>
+      ) : (
       <div className="relative mx-auto flex w-full max-w-7xl flex-col items-center gap-6">
         <div className="hidden min-[701px]:block w-full">
           <LuxuryPropertyCard property={luxuryProperties[activeIndex]} />
@@ -162,6 +187,7 @@ export default function MostLuxury({ variant = "default" }: MostLuxuryProps) {
           </button>
         </div>
       </div>
+      )}
     </section>
   );
 }

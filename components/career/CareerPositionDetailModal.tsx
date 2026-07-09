@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useId } from "react";
 import { LuX } from "react-icons/lu";
 import { scrollToCareerApply } from "@/components/career/careerApplyEvents";
@@ -72,66 +71,91 @@ export default function CareerPositionDetailModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative z-10 isolate flex max-h-[min(90vh,820px)] w-full max-w-[720px] flex-col overflow-hidden rounded-3xl border border-accent-light shadow-[0_0_40px_rgba(0,0,0,0.25)]"
+        className="relative z-10 isolate flex max-h-[min(90vh,760px)] w-full max-w-[640px] flex-col overflow-hidden rounded-3xl border border-accent-light shadow-[0_0_40px_rgba(0,0,0,0.25)]"
       >
         <PrimaryShineBackdrop className="rounded-3xl" />
         <PrimaryShineAccents size="card" />
 
-        <div className="relative z-10 flex max-h-full flex-col overflow-y-auto">
-          <div className="relative h-[220px] w-full shrink-0 overflow-hidden border-b border-accent-light sm:h-[260px]">
-            <Image
-              src={position.image}
-              alt={position.imageAlt}
-              fill
-              className="object-cover object-center"
-              sizes="720px"
-            />
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 bg-gradient-to-b from-transparent from-[40%] to-primary/90"
-            />
-            <button
-              type="button"
-              aria-label="Close position details popup"
-              onClick={dismiss}
-              className="absolute right-4 top-4 flex size-10 cursor-pointer items-center justify-center rounded-full border border-accent-light bg-primary/70 text-white transition-opacity hover:opacity-80"
-            >
-              <LuX className="size-6" strokeWidth={2} aria-hidden="true" />
-            </button>
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-[1]"
+          style={{
+            backgroundImage:
+              "linear-gradient(150deg, #012235 0%, #003049 48%, #0a4d73 100%)",
+          }}
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-[1]"
+          style={{
+            backgroundImage:
+              "radial-gradient(120% 70% at 85% 0%, rgba(102,155,188,0.5) 0%, rgba(102,155,188,0) 45%), radial-gradient(90% 70% at 10% 100%, rgba(2,18,30,0.85) 0%, rgba(2,18,30,0) 55%)",
+          }}
+        />
+
+        <button
+          type="button"
+          aria-label="Close position details popup"
+          onClick={dismiss}
+          className="absolute right-5 top-5 z-20 flex size-10 cursor-pointer items-center justify-center rounded-full border border-accent-light bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+        >
+          <LuX className="size-5" strokeWidth={2} aria-hidden="true" />
+        </button>
+
+        <div className="relative z-10 flex max-h-full flex-col overflow-y-auto p-7 sm:p-10">
+          <div className="flex flex-col gap-3 pr-10">
+            <span className="w-fit rounded-full border border-accent-light/60 bg-white/10 px-3 py-1 font-heading text-xs font-semibold uppercase tracking-wide text-accent-light">
+              {position.levelValue}
+            </span>
             <h2
               id={titleId}
-              className="absolute inset-x-6 bottom-5 font-heading text-[clamp(1.75rem,4vw,2.25rem)] font-bold leading-tight capitalize text-white"
+              className="font-heading text-[clamp(1.75rem,4vw,2.25rem)] font-bold leading-tight capitalize text-white"
             >
               {position.title}
             </h2>
+            <span
+              aria-hidden="true"
+              className="mt-1 block h-[3px] w-16 rounded-full bg-accent-light"
+            />
           </div>
 
-          <div className="flex flex-col gap-6 p-6 sm:p-8">
-            <div className="flex flex-col gap-2 sm:flex-row sm:gap-8">
-              <p className="flex min-w-0 items-center gap-2 font-heading text-base font-medium text-accent-light">
-                <span>{position.salaryLabel}</span>
-                <span className="text-xl text-white">{position.salaryValue}</span>
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="rounded-2xl border border-accent-light/40 bg-white/5 px-4 py-3">
+              <p className="font-heading text-sm font-medium text-accent-light">
+                {position.salaryLabel}
               </p>
-              <p className="flex min-w-0 items-center gap-2 font-heading text-base font-medium text-accent-light">
-                <span>{position.levelLabel}</span>
-                <span className="text-xl text-white">{position.levelValue}</span>
+              <p className="mt-0.5 font-heading text-lg font-semibold text-white">
+                {position.salaryValue}
               </p>
             </div>
+            <div className="rounded-2xl border border-accent-light/40 bg-white/5 px-4 py-3">
+              <p className="font-heading text-sm font-medium text-accent-light">
+                {position.levelLabel}
+              </p>
+              <p className="mt-0.5 font-heading text-lg font-semibold text-white">
+                {position.levelValue}
+              </p>
+            </div>
+          </div>
 
-            <p className="font-sans text-base leading-7 text-white/80 sm:text-lg sm:leading-8">
+          <div className="mt-6 flex flex-col gap-2">
+            <h3 className="font-heading text-base font-semibold text-accent-light">
+              About the role
+            </h3>
+            <p className="font-sans text-base leading-7 text-white/80 sm:leading-8">
               {position.fullDescription}
             </p>
-
-            <button
-              type="button"
-              onClick={handleApply}
-              className={`${PRIMARY_SHINE_SURFACE_CLASS} inline-flex h-[62px] w-full items-center justify-center rounded-3xl border border-accent-light px-8 font-heading text-[clamp(1.25rem,2vw,1.75rem)] font-medium leading-[42px] text-white transition-opacity hover:opacity-90 sm:w-auto sm:min-w-[222px]`}
-            >
-              <PrimaryShineBackdrop className="rounded-3xl" />
-              <PrimaryShineAccents size="button" />
-              <span className="relative z-10">Apply Now</span>
-            </button>
           </div>
+
+          <button
+            type="button"
+            onClick={handleApply}
+            className={`${PRIMARY_SHINE_SURFACE_CLASS} mt-8 inline-flex h-[60px] w-full items-center justify-center rounded-3xl border border-accent-light px-8 font-heading text-[clamp(1.15rem,2vw,1.5rem)] font-medium leading-none text-white transition-opacity hover:opacity-90`}
+          >
+            <PrimaryShineBackdrop className="rounded-3xl" />
+            <PrimaryShineAccents size="button" />
+            <span className="relative z-10">Apply Now</span>
+          </button>
         </div>
       </div>
     </div>

@@ -128,7 +128,7 @@ export default function PropertyDetailHero({
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
               <Link
-                href="#contact"
+                href="/contact"
                 className={`${PRIMARY_SHINE_SURFACE_CLASS} inline-flex h-14 items-center justify-center gap-2.5 rounded-3xl px-8 font-heading text-[clamp(1.25rem,2vw,2rem)] font-medium text-white transition-opacity hover:opacity-90`}
               >
                 <PrimaryShineLayers accentSize="button" roundedClass="rounded-3xl" />

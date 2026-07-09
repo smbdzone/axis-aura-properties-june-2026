@@ -1,20 +1,19 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import {
-  currentCommentUser,
-  newsComments,
-  type NewsComment,
-} from "@/components/data/newsComments";
+import { FormEvent, useEffect, useState } from "react";
+import { toast } from "sonner";
+import { type NewsComment } from "@/components/data/newsComments";
 import {
   PrimaryShineAccents,
   PrimaryShineBackdrop,
   PRIMARY_SHINE_SURFACE_CLASS,
 } from "@/components/ui/PrimaryShine";
 import NewsEngagementBar from "@/components/news-and-regulations/NewsEngagementBar";
-import CommentThankYouModal from "@/components/news-and-regulations/CommentThankYouModal";
 
 const COMMENTS_BATCH_SIZE = 3;
+
+const commentInputClass =
+  "w-full rounded-xl border-[1.5px] border-accent-light bg-white px-4 py-3 font-sans text-base leading-[22px] text-primary outline-none placeholder:text-primary/50";
 
 function CommentAvatar({ name }: { name: string }) {
   const initials = name
@@ -69,35 +68,88 @@ function CommentItem({ comment }: { comment: NewsComment }) {
 }
 
 export default function NewsCommentsSection() {
+  const [comments, setComments] = useState<NewsComment[]>([]);
   const [visibleCount, setVisibleCount] = useState(COMMENTS_BATCH_SIZE);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [draft, setDraft] = useState("");
-  const [showThankYou, setShowThankYou] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const visibleComments = newsComments.slice(0, visibleCount);
-  const hasMoreComments = visibleCount < newsComments.length;
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/comments")
+      .then((response) => response.json())
+      .then((data: { comments?: NewsComment[] }) => {
+        if (!cancelled) setComments(data.comments ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setComments([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const visibleComments = comments.slice(0, visibleCount);
+  const hasMoreComments = visibleCount < comments.length;
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const trimmed = draft.trim();
-    if (!trimmed) return;
 
-    setDraft("");
-    setShowThankYou(true);
+    if (!name.trim() || !email.trim() || !draft.trim()) {
+      toast.error("Please add your name, email, and comment.");
+      return;
+    }
+
+    setSubmitting(true);
+    const toastId = toast.loading("Sending your comment...");
+
+    try {
+      const response = await fetch("/api/comments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: name.trim(),
+          email: email.trim(),
+          content: draft.trim(),
+        }),
+      });
+
+      const data = (await response.json().catch(() => ({}))) as {
+        message?: string;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Unable to submit your comment right now.");
+      }
+
+      toast.success("Your comment has been sent to the super admin for approval.", {
+        id: toastId,
+      });
+      setDraft("");
+      setName("");
+      setEmail("");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to submit your comment right now. Please try again.",
+        { id: toastId },
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleViewMore = () => {
     setVisibleCount((current) =>
-      Math.min(current + COMMENTS_BATCH_SIZE, newsComments.length),
+      Math.min(current + COMMENTS_BATCH_SIZE, comments.length),
     );
   };
 
   return (
     <>
-      <CommentThankYouModal
-        isOpen={showThankYou}
-        onClose={() => setShowThankYou(false)}
-      />
-
       <section
         aria-label="Article engagement"
         className="flex w-full flex-col items-center px-5 pb-8 pt-2.5 max-lg:px-5 lg:px-24 lg:pb-12"
@@ -128,34 +180,49 @@ export default function NewsCommentsSection() {
 
           <div className="flex w-full flex-col items-center gap-10 max-lg:gap-8 lg:gap-16">
             <div className="relative w-full">
-              <div className="mb-4 flex items-center gap-1">
-                <CommentAvatar name={currentCommentUser.name} />
-                <span className="font-sans text-xl leading-7 text-[#333333]">
-                  {currentCommentUser.name}
-                </span>
-              </div>
+              <form onSubmit={handleSubmit} className="relative mx-auto flex w-full max-w-[600px] flex-col gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <label htmlFor="comment-name" className="sr-only">
+                    Your name
+                  </label>
+                  <input
+                    id="comment-name"
+                    type="text"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder="Your name"
+                    className={commentInputClass}
+                  />
+                  <label htmlFor="comment-email" className="sr-only">
+                    Your email
+                  </label>
+                  <input
+                    id="comment-email"
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="you@example.com"
+                    className={commentInputClass}
+                  />
+                </div>
 
-              <form onSubmit={handleSubmit} className="relative mx-auto w-full max-w-[600px]">
                 <label htmlFor="comment-draft" className="sr-only">
                   Write a comment
                 </label>
-                <div
-                  className={`${PRIMARY_SHINE_SURFACE_CLASS} relative min-h-[180px] w-full rounded-[24px]`}
-                >
-                  <PrimaryShineBackdrop className="rounded-[24px]" />
-                  <PrimaryShineAccents size="button" />
+                <div className="relative min-h-[180px] w-full rounded-[24px] border-[1.5px] border-accent-light bg-white">
                   <textarea
                     id="comment-draft"
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
                     placeholder="what’s on your mind?"
-                    className="relative z-10 min-h-[180px] w-full resize-none rounded-[24px] bg-transparent p-6 pb-16 font-sans text-base leading-[22px] text-white outline-none placeholder:text-white/60"
+                    className="relative z-10 min-h-[180px] w-full resize-none rounded-[24px] bg-transparent p-6 pb-16 font-sans text-base leading-[22px] text-primary outline-none placeholder:text-primary/50"
                   />
                   <button
                     type="submit"
-                    className="absolute bottom-5 right-5 z-10 inline-flex h-[49px] min-w-[109px] cursor-pointer items-center justify-center rounded-2xl border-[1.5px] border-accent-light bg-white px-8 py-3 font-heading text-2xl font-medium leading-[31px] text-primary transition-opacity hover:opacity-90"
+                    disabled={submitting}
+                    className="absolute bottom-5 right-5 z-10 inline-flex h-[49px] min-w-[109px] cursor-pointer items-center justify-center rounded-2xl border-[1.5px] border-accent-light bg-primary px-8 py-3 font-heading text-2xl font-medium leading-[31px] text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Post
+                    {submitting ? "Posting..." : "Post"}
                   </button>
                 </div>
               </form>

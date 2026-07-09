@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { LuUpload } from "react-icons/lu";
+import { toast } from "sonner";
 import EnquiryDropdown from "@/components/EnquiryDropdown";
 import {
   CAREER_APPLY_ROLE_EVENT,
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/PrimaryShine";
 
 const PHONE_MAX_LENGTH = 12;
+const MAX_CV_SIZE_BYTES = 3 * 1024 * 1024; // 3 MB
 
 const fieldInputClass =
   "w-full bg-transparent font-heading text-[15px] font-medium leading-none text-primary outline-none placeholder:font-heading placeholder:text-[15px] placeholder:font-medium placeholder:text-primary/60";
@@ -60,13 +62,18 @@ function FieldGroup({
 }
 
 export default function CareerJobApplyCard() {
-  const { applyTitle, requirements, form, roleOptions } = careerApplySection;
+  const { requirements, form } = careerApplySection;
   const formRef = useRef<HTMLFormElement>(null);
 
   const [countryCode, setCountryCode] = useState(defaultCountryCode);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [role, setRole] = useState("");
   const [cvFileName, setCvFileName] = useState("");
+  const [cvFile, setCvFile] = useState<File | null>(null);
+  const [roleOptions, setRoleOptions] = useState<{ value: string; label: string }[]>(
+    [],
+  );
+  const [submitting, setSubmitting] = useState(false);
 
   const countryId = useId();
   const roleId = useId();
@@ -84,6 +91,36 @@ export default function CareerJobApplyCard() {
   );
 
   useEffect(() => {
+    let isMounted = true;
+
+    async function loadRoles() {
+      try {
+        const response = await fetch("/api/careers", { cache: "no-store" });
+        if (!response.ok) return;
+        const data = (await response.json()) as {
+          positions: { id: string; title: string }[];
+        };
+        if (isMounted) {
+          setRoleOptions(
+            data.positions.map((position) => ({
+              value: position.id,
+              label: position.title,
+            })),
+          );
+        }
+      } catch {
+        // roles remain empty; the dropdown will simply show no options
+      }
+    }
+
+    void loadRoles();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
     const handleApplyRole = (event: Event) => {
       const { roleId } = (event as CustomEvent<CareerApplyRoleDetail>).detail;
       if (roleOptions.some((option) => option.value === roleId)) {
@@ -98,13 +135,102 @@ export default function CareerJobApplyCard() {
     };
   }, [roleOptions]);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleCvChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+
+    if (!file) {
+      setCvFile(null);
+      setCvFileName("");
+      return;
+    }
+
+    const isPdf =
+      file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+
+    if (!isPdf) {
+      event.target.value = "";
+      setCvFile(null);
+      setCvFileName("");
+      toast.error("Only PDF files are allowed for the resume.");
+      return;
+    }
+
+    if (file.size > MAX_CV_SIZE_BYTES) {
+      event.target.value = "";
+      setCvFile(null);
+      setCvFileName("");
+      toast.error("Resume must be 3 MB or smaller.");
+      return;
+    }
+
+    const toastId = toast.loading("Uploading resume...");
+    // Give quick visual feedback that the file is attached and valid.
+    window.setTimeout(() => {
+      setCvFile(file);
+      setCvFileName(file.name);
+      toast.success("Resume uploaded successfully.", { id: toastId });
+    }, 600);
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    formRef.current?.reset();
-    setPhoneNumber("");
-    setRole("");
-    setCvFileName("");
-    setCountryCode(defaultCountryCode);
+
+    const formElement = event.currentTarget;
+    const data = new FormData(formElement);
+    const fullName = String(data.get("fullName") ?? "").trim();
+    const email = String(data.get("email") ?? "").trim();
+    const description = String(data.get("description") ?? "").trim();
+
+    if (!fullName || !email || !phoneNumber.trim() || !role) {
+      toast.error("Please fill in your name, email, phone and role.");
+      return;
+    }
+
+    const roleLabel =
+      roleOptions.find((option) => option.value === role)?.label ?? role;
+
+    const payload = new FormData();
+    payload.append("fullName", fullName);
+    payload.append("email", email);
+    payload.append("phone", `${selectedCountry.dialCode} ${phoneNumber.trim()}`);
+    payload.append("position", roleLabel);
+    payload.append("description", description);
+    if (cvFile) payload.append("resume", cvFile);
+
+    setSubmitting(true);
+    const toastId = toast.loading("Submitting your application...");
+    try {
+      const response = await fetch("/api/careers/apply", {
+        method: "POST",
+        body: payload,
+      });
+
+      if (!response.ok) {
+        const result = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        throw new Error(result.error ?? "Failed to submit application.");
+      }
+
+      toast.success("Your application has been submitted successfully.", {
+        id: toastId,
+      });
+      formElement.reset();
+      setPhoneNumber("");
+      setRole("");
+      setCvFileName("");
+      setCvFile(null);
+      setCountryCode(defaultCountryCode);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to submit application right now.",
+        { id: toastId },
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -148,11 +274,14 @@ export default function CareerJobApplyCard() {
           <button
             type="submit"
             form="career-apply-form"
-            className={`${PRIMARY_SHINE_SURFACE_CLASS} inline-flex h-[63px] min-w-[278px] cursor-pointer items-center justify-center rounded-3xl px-8 py-4 font-heading text-2xl font-medium leading-[31px] text-white transition-opacity hover:opacity-90`}
+            disabled={submitting}
+            className={`${PRIMARY_SHINE_SURFACE_CLASS} inline-flex h-[63px] min-w-[278px] cursor-pointer items-center justify-center rounded-3xl px-8 py-4 font-heading text-2xl font-medium leading-[31px] text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70`}
           >
             <PrimaryShineBackdrop className="rounded-3xl" />
             <PrimaryShineAccents size="button" />
-            <span className="relative z-10">{requirements.ctaLabel}</span>
+            <span className="relative z-10">
+              {submitting ? "Submitting..." : requirements.ctaLabel}
+            </span>
           </button>
         </div>
 
@@ -166,6 +295,7 @@ export default function CareerJobApplyCard() {
             <div className={fieldBoxClass}>
               <input
                 type="text"
+                name="fullName"
                 required
                 aria-label={form.fullNameLabel}
                 className={fieldInputClass}
@@ -214,6 +344,7 @@ export default function CareerJobApplyCard() {
             <div className={fieldBoxClass}>
               <input
                 type="email"
+                name="email"
                 required
                 aria-label={form.emailLabel}
                 className={fieldInputClass}
@@ -238,6 +369,7 @@ export default function CareerJobApplyCard() {
             <div className={`${fieldBoxClass} h-auto min-h-[131px] items-start`}>
               <textarea
                 id="career-description"
+                name="description"
                 rows={3}
                 aria-label={form.descriptionLabel}
                 className={`min-h-[72px] resize-none ${fieldInputClass}`}
@@ -255,15 +387,15 @@ export default function CareerJobApplyCard() {
                 <span className="text-center font-heading text-[15px] font-medium leading-none text-primary/60">
                   {cvFileName || "Drag and Drop or browse"}
                 </span>
+                <span className="text-center font-heading text-xs font-medium leading-none text-primary/40">
+                  PDF only, max 3 MB
+                </span>
                 <input
                   id={cvInputId}
                   type="file"
-                  accept=".pdf,.doc,.docx"
+                  accept="application/pdf,.pdf"
                   className="sr-only"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    setCvFileName(file?.name ?? "");
-                  }}
+                  onChange={handleCvChange}
                 />
               </label>
             </div>

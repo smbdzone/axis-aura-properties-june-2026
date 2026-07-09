@@ -111,11 +111,7 @@ export default function NewsCategoryBlogCard({
 }: NewsCategoryBlogCardProps) {
   const imageLeft = post.imagePosition === "left";
 
-  const categoryLabelPosition = {
-    buyer: "left-[598px]",
-    seller: "left-[258px]",
-    investor: "left-[595px]",
-  }[post.category];
+  const categoryLabelPosition = imageLeft ? "left-[595px]" : "left-[258px]";
 
   return (
     <article

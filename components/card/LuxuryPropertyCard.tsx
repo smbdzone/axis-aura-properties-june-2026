@@ -70,7 +70,7 @@ export default function LuxuryPropertyCard({
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-8">
           <Link
-            href="#contact"
+            href="/contact"
             className={`${PRIMARY_SHINE_SURFACE_CLASS} flex items-center justify-center rounded-3xl px-8 py-3 font-heading text-xl font-bold text-white transition-opacity hover:opacity-90 sm:text-2xl lg:px-12 lg:py-3.5`}
           >
             <PrimaryShineLayers accentSize="button" roundedClass="rounded-3xl" />

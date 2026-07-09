@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 import ProjectCard from "@/components/card/ProjectCard";
 import {
-  hotProjects,
   projectCategories,
+  type Project,
   type ProjectCategory,
 } from "@/components/data/projects";
 import {
@@ -44,10 +44,28 @@ export default function HotProjects() {
   const [activeCategory, setActiveCategory] =
     useState<ProjectCategory>("Residential");
   const [activePage, setActivePage] = useState(0);
+  const [projects, setProjects] = useState<Project[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/properties/projects")
+      .then((response) => response.json())
+      .then((data: { projects?: Project[] }) => {
+        if (cancelled) return;
+        setProjects(data.projects ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setProjects([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filteredProjects = useMemo(
-    () => hotProjects.filter((project) => project.category === activeCategory),
-    [activeCategory],
+    () => projects.filter((project) => project.category === activeCategory),
+    [projects, activeCategory],
   );
 
   const totalPages = Math.max(1, Math.ceil(filteredProjects.length / PAGE_SIZE));

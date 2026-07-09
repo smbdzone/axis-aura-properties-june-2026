@@ -1,16 +1,9 @@
 import Image from "next/image";
-import Link from "next/link";
 import SectionDivider from "@/components/SectionDivider";
 import { residentialHero } from "@/components/data/residential";
-import {
-  PrimaryShineAccents,
-  PrimaryShineBackdrop,
-  PRIMARY_SHINE_SURFACE_CLASS,
-} from "@/components/ui/PrimaryShine";
 
 export default function ResidentialHero() {
-  const { image, imageAlt, title, description, ctaLabel, ctaHref } =
-    residentialHero;
+  const { image, imageAlt, title, description } = residentialHero;
 
   return (
     <section
@@ -50,15 +43,6 @@ export default function ResidentialHero() {
               {description}
             </p>
           </div>
-
-          <Link
-            href={ctaHref}
-            className={`${PRIMARY_SHINE_SURFACE_CLASS} inline-flex h-[62px] w-[322px] shrink-0 items-center justify-center whitespace-nowrap rounded-3xl px-8 py-2.5 font-heading text-[clamp(1.25rem,2vw,2rem)] font-medium leading-[42px] text-white transition-opacity hover:opacity-90`}
-          >
-            <PrimaryShineBackdrop className="rounded-3xl" />
-            <PrimaryShineAccents size="button" />
-            <span className="relative z-10">{ctaLabel}</span>
-          </Link>
         </div>
       </div>
 

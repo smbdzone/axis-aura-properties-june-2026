@@ -5,5 +5,5 @@ export const newsRegulationsHero = {
     "In recent months, interest rate hikes have created ripples across the global real estate market.",
   image: "/Newsletter/main.svg",
   imageAlt: "Dubai marina skyline at dusk",
-  contactHref: "mailto:info@suitsandsand.com",
+  contactHref: "/contact",
 };

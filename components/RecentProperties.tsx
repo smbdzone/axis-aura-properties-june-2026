@@ -2,13 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
-import PropertyCard from "@/components/card/PropertyCard";
+import PropertyCard, { type Property } from "@/components/card/PropertyCard";
 import type { PropertyFilterValues } from "@/components/data/newProjectFilters";
-import {
-  filterProperties,
-  newProjectProperties,
-  recentProperties,
-} from "@/components/data/properties";
+import { filterProperties } from "@/components/data/properties";
 import {
   PrimaryShineAccents,
   PrimaryShineBackdrop,
@@ -24,7 +20,11 @@ type RecentPropertiesProps = {
   category?: "residential" | "commercial";
   filters?: PropertyFilterValues;
   sectionId?: string;
+  /** When provided, use this list instead of fetching (avoids duplicate fetches). */
+  initialProperties?: Property[];
 };
+
+const RECENT_TEASER_LIMIT = 3;
 
 function PropertyPagination({
   currentPage,
@@ -92,8 +92,39 @@ export default function RecentProperties({
   category,
   filters,
   sectionId,
+  initialProperties,
 }: RecentPropertiesProps) {
-  const sourceProperties = showViewMore ? newProjectProperties : recentProperties;
+  const [remoteProperties, setRemoteProperties] = useState<Property[] | null>(
+    initialProperties ?? null,
+  );
+
+  useEffect(() => {
+    if (initialProperties) {
+      setRemoteProperties(initialProperties);
+      return;
+    }
+
+    let cancelled = false;
+    fetch("/api/properties")
+      .then((response) => response.json())
+      .then((data: { properties?: Property[] }) => {
+        if (cancelled) return;
+        setRemoteProperties(data.properties ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setRemoteProperties([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialProperties]);
+
+  const isLoading = remoteProperties === null;
+  const allProperties = remoteProperties ?? [];
+  const sourceProperties = showViewMore
+    ? allProperties
+    : allProperties.slice(0, RECENT_TEASER_LIMIT);
   const properties = useMemo(
     () =>
       filters
@@ -207,6 +238,10 @@ export default function RecentProperties({
         </header>
       ) : null}
 
+      {isLoading ? (
+        <p className="font-heading text-xl text-black/60">Loading properties...</p>
+      ) : null}
+
       <div
         className={[
           "mx-auto w-full max-w-7xl gap-6",
@@ -220,7 +255,7 @@ export default function RecentProperties({
         ))}
       </div>
 
-      {showViewMore && properties.length === 0 ? (
+      {showViewMore && !isLoading && properties.length === 0 ? (
         <p className="font-heading text-xl text-black/60">
           No properties match your filters. Try adjusting your search.
         </p>
@@ -255,7 +290,7 @@ export default function RecentProperties({
         </div>
       ) : null}
 
-      {!showViewMore ? (
+      {!showViewMore && !isLoading && mobileCarouselTotal > 0 ? (
         <div className="mx-auto flex w-full max-w-sm flex-col items-center gap-6 lg:hidden">
           <div className="flex items-center gap-6">
             <button

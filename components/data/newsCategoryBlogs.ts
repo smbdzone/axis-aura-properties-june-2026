@@ -10,6 +10,7 @@ export type ArticleSection = {
   intro?: string;
   bullets?: ArticleBullet[];
   body?: string;
+  bodyHtml?: string;
 };
 
 export type NewsCategoryBlogPost = {

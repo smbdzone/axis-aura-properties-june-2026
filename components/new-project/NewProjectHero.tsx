@@ -1,15 +1,8 @@
 import Image from "next/image";
-import Link from "next/link";
 import { newProjectHero } from "@/components/data/newProject";
-import {
-  PrimaryShineAccents,
-  PrimaryShineBackdrop,
-  PRIMARY_SHINE_SURFACE_CLASS,
-} from "@/components/ui/PrimaryShine";
 
 export default function NewProjectHero() {
-  const { image, imageAlt, title, description, ctaLabel, ctaHref } =
-    newProjectHero;
+  const { image, imageAlt, title, description } = newProjectHero;
 
   return (
     <section
@@ -40,15 +33,6 @@ export default function NewProjectHero() {
             {description}
           </p>
         </div>
-
-        <Link
-          href={ctaHref}
-          className={`${PRIMARY_SHINE_SURFACE_CLASS} inline-flex h-[54px] w-full max-w-[300px] items-center justify-center whitespace-nowrap rounded-3xl px-8 py-2.5 font-heading text-[clamp(1.125rem,4vw,2rem)] font-medium leading-none text-white transition-opacity hover:opacity-90 min-[701px]:h-[62px] min-[701px]:w-[322px] min-[701px]:leading-[42px]`}
-        >
-          <PrimaryShineBackdrop className="rounded-3xl" />
-          <PrimaryShineAccents size="button" />
-          <span className="relative z-10">{ctaLabel}</span>
-        </Link>
       </div>
     </section>
   );

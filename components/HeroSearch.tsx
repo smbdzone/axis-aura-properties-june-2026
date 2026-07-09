@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LuSearch } from "react-icons/lu";
 import {
@@ -9,13 +10,33 @@ import {
 
 type SearchMode = "developer" | "projects";
 
+const MODE_HREF: Record<SearchMode, string> = {
+  developer: "/developers",
+  projects: "/new-project",
+};
+
 const inactiveTabClass =
   "relative z-10 flex h-9 items-center justify-center rounded-full border-2 border-transparent px-4 font-sans text-sm leading-normal text-white opacity-90 transition-all duration-200 hover:opacity-100 sm:h-10 sm:px-5 sm:text-base md:text-xl md:leading-7";
 
 const activeTabClass = `${PRIMARY_SHINE_SURFACE_CLASS} flex h-9 items-center justify-center rounded-full border-2 border-white px-4 font-sans text-sm leading-normal text-white transition-all duration-200 sm:h-10 sm:px-5 sm:text-base md:text-xl md:leading-7`;
 
 export default function HeroSearch() {
+  const router = useRouter();
   const [mode, setMode] = useState<SearchMode>("projects");
+  const [query, setQuery] = useState("");
+
+  const goTo = (nextMode: SearchMode) => {
+    setMode(nextMode);
+    router.push(MODE_HREF[nextMode]);
+  };
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    // Searching by area always takes the user to the New Project listings page.
+    const base = MODE_HREF.projects;
+    const trimmed = query.trim();
+    router.push(trimmed ? `${base}?search=${encodeURIComponent(trimmed)}` : base);
+  };
 
   return (
     <div className="flex w-full max-w-2xl flex-col gap-4 drop-shadow-lg sm:gap-5">
@@ -30,7 +51,7 @@ export default function HeroSearch() {
             type="button"
             role="tab"
             aria-selected={mode === "developer"}
-            onClick={() => setMode("developer")}
+            onClick={() => goTo("developer")}
             className={
               mode === "developer" ? activeTabClass : inactiveTabClass
             }
@@ -52,7 +73,7 @@ export default function HeroSearch() {
             type="button"
             role="tab"
             aria-selected={mode === "projects"}
-            onClick={() => setMode("projects")}
+            onClick={() => goTo("projects")}
             className={mode === "projects" ? activeTabClass : inactiveTabClass}
           >
             {mode === "projects" ? (
@@ -72,7 +93,7 @@ export default function HeroSearch() {
 
       <form
         className="flex h-11 w-full  items-center justify-between rounded-3xl border-2 border-accent-light bg-primary py-1 pl-4 pr-1 sm:h-12 sm:pl-6"
-        onSubmit={(event) => event.preventDefault()}
+        onSubmit={handleSubmit}
       >
         <label htmlFor="hero-search" className="sr-only">
           Search by area
@@ -80,6 +101,8 @@ export default function HeroSearch() {
         <input
           id="hero-search"
           type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
           placeholder="Search by area"
           className="min-w-0 flex-1 bg-transparent font-sans text-sm leading-normal text-white placeholder:text-white outline-none sm:text-base"
         />

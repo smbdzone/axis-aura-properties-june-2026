@@ -48,7 +48,7 @@ export default function Navbar() {
       <PrimaryShineBackdrop variant="navbar" />
       <PrimaryShineAccents size="navbar" />
 
-      <div className="relative z-10 mx-auto flex h-[124px] max-w-[1248px] items-center justify-between min-[1441px]:gap-[218px]">
+      <div className="relative z-10 mx-auto flex h-[124px] max-w-[1248px] items-center justify-between min-[1441px]:gap-12">
         <Link href="/" className="shrink-0" onClick={() => setMenuOpen(false)}>
           <Image
             src="/logo.svg"
@@ -61,7 +61,7 @@ export default function Navbar() {
         </Link>
 
         <nav aria-label="Main navigation" className="hidden min-[1441px]:block">
-          <ul className="group/nav flex h-12 w-[794px] items-center justify-center gap-2 rounded-[24px] bg-transparent px-10">
+          <ul className="group/nav flex h-12 w-auto items-center justify-center gap-2 rounded-[24px] bg-transparent px-6">
             {navLinks.map(({ label, href }) => {
               const active = pathname === href;
 

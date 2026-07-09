@@ -20,6 +20,7 @@ const primaryNavLinks = [
 
 const secondaryNavLinks = [
   { label: "FAQs", href: "/faq" },
+  { label: "Contact Us", href: "/contact" },
   { label: "Privacy Policy", href: "#" },
   { label: "Terms & Conditions", href: "#" },
 ];
@@ -63,10 +64,10 @@ export default function Footer() {
                 +971 123 123 123
               </a>
               <a
-                href="mailto:info@suitsandsand.com"
+                href="mailto:info@axisaura.com"
                 className="transition-opacity hover:opacity-80"
               >
-                info@suitsandsand.com
+                info@axisaura.com
               </a>
               <span>
                 Dubai, Barari Lagoons
@@ -80,7 +81,7 @@ export default function Footer() {
             <Link href="/" className="shrink-0">
               <Image
                 src="/logo.svg"
-                alt="Suits & Sand Real Estate"
+                alt="Axis Aura Real Estate"
                 width={148}
                 height={143}
                 className="h-[92px] w-[95px] min-[701px]:h-[143px] min-[701px]:w-[148px]"
@@ -145,7 +146,7 @@ export default function Footer() {
 
         <div className="mx-auto mt-5 flex w-full max-w-[1100px] flex-col items-center gap-2 px-2 text-center min-[701px]:mt-6 sm:flex-row sm:justify-center sm:gap-4">
           <p className="font-sans text-xs leading-5 text-white min-[701px]:text-sm min-[701px]:leading-4">
-            @2025 Suits and Sand Real Estate. All rights reserved
+            @2025 Axis Aura Real Estate. All rights reserved
           </p>
           <span
             className="hidden font-sans text-2xl leading-7 text-white sm:inline"

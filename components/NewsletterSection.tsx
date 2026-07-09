@@ -1,13 +1,54 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { toast } from "sonner";
 
 export default function NewsletterSection() {
   const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setEmail("");
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      toast.error("Please enter your email address.");
+      return;
+    }
+
+    setSubmitting(true);
+    const toastId = toast.loading("Subscribing to the newsletter...");
+
+    try {
+      const response = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmedEmail }),
+      });
+
+      const data = (await response.json().catch(() => ({}))) as {
+        message?: string;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Unable to subscribe right now.");
+      }
+
+      toast.success("You're subscribed! Check your inbox for updates.", {
+        id: toastId,
+      });
+      setEmail("");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to subscribe right now. Please try again.",
+        { id: toastId },
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -78,9 +119,10 @@ export default function NewsletterSection() {
           />
           <button
             type="submit"
-            className="inline-flex h-10 w-full shrink-0 items-center justify-center rounded-full border-[1.5px] border-accent-light bg-white px-6 py-2 font-sans text-sm leading-4 text-[#0A0049] transition-opacity hover:opacity-80 min-[701px]:h-[37px] min-[701px]:w-auto min-[701px]:text-xs"
+            disabled={submitting}
+            className="inline-flex h-10 w-full shrink-0 items-center justify-center rounded-full border-[1.5px] border-accent-light bg-white px-6 py-2 font-sans text-sm leading-4 text-[#0A0049] transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-60 min-[701px]:h-[37px] min-[701px]:w-auto min-[701px]:text-xs"
           >
-            Subscribe
+            {submitting ? "Subscribing..." : "Subscribe"}
           </button>
         </form>
       </div>

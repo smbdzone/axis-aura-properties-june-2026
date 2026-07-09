@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import type { CareerPosition } from "@/components/data/careerPositions";
 import {
   PrimaryShineAccents,
@@ -25,37 +24,57 @@ export default function CareerPositionCard({
     levelLabel,
     levelValue,
     description,
-    image,
-    imageAlt,
   } = position;
 
   return (
-    <article className="relative isolate mx-auto flex h-[500px] w-full max-w-[320px] flex-col overflow-hidden rounded-3xl border-[1.5px] border-accent-light shadow-[0_0_40px_rgba(0,0,0,0.25)]">
+    <article className="group relative isolate mx-auto flex min-h-[420px] w-full max-w-[320px] flex-col overflow-hidden rounded-3xl border-[1.5px] border-accent-light shadow-[0_0_40px_rgba(0,0,0,0.25)]">
       <PrimaryShineBackdrop className="rounded-3xl" />
       <PrimaryShineAccents size="card" />
 
-      <div className="relative z-[1] h-[205px] w-full shrink-0 overflow-hidden rounded-t-2xl border-[1.5px] border-accent-light">
-        <Image
-          src={image}
-          alt={imageAlt}
-          fill
-          className="object-cover object-center"
-          sizes="320px"
-        />
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 bg-gradient-to-b from-transparent from-[53.9%] to-black"
-        />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-[1]"
+        style={{
+          backgroundImage:
+            "linear-gradient(150deg, #012235 0%, #003049 48%, #0a4d73 100%)",
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-[1]"
+        style={{
+          backgroundImage:
+            "radial-gradient(120% 90% at 85% 8%, rgba(102,155,188,0.55) 0%, rgba(102,155,188,0) 45%), radial-gradient(90% 80% at 12% 100%, rgba(2,18,30,0.85) 0%, rgba(2,18,30,0) 55%)",
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-[1] opacity-[0.12] mix-blend-screen"
+        style={{
+          backgroundImage:
+            "radial-gradient(rgba(255,255,255,0.9) 1px, transparent 1.4px)",
+          backgroundSize: "20px 20px",
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -inset-y-10 -left-1/3 z-[1] w-1/2 rotate-12 bg-gradient-to-r from-transparent via-white/12 to-transparent blur-md transition-transform duration-700 ease-out group-hover:translate-x-[260%]"
+      />
 
-        <h3
-          className="absolute inset-x-4 bottom-3 z-10 h-[44px] truncate font-heading text-[26px] font-bold leading-[44px] capitalize text-white"
-          title={title}
-        >
-          {title}
-        </h3>
-      </div>
+      <div className="relative z-[2] flex flex-1 flex-col px-6 pb-6 pt-7">
+        <div className="mb-5 shrink-0">
+          <h3
+            className="font-heading text-[26px] font-bold leading-[32px] capitalize text-white line-clamp-3"
+            title={title}
+          >
+            {title}
+          </h3>
+          <span
+            aria-hidden="true"
+            className="mt-3 block h-[3px] w-12 rounded-full bg-accent-light"
+          />
+        </div>
 
-      <div className="relative z-[2] -mt-[57px] flex flex-1 flex-col px-4 pb-4 pt-[70px]">
         <div className="flex shrink-0 flex-col">
           <p className="flex h-[30px] min-w-0 items-center gap-1 whitespace-nowrap">
             <span className="shrink-0 font-heading text-base font-medium leading-6 text-accent-light">
@@ -79,7 +98,7 @@ export default function CareerPositionCard({
           {description}
         </p>
 
-        <div className="flex shrink-0 flex-col gap-2 pt-[20px]">
+        <div className="mt-auto flex shrink-0 flex-col gap-2 pt-[20px]">
           <button
             type="button"
             onClick={() => onViewDetails(position)}

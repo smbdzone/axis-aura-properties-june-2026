@@ -65,9 +65,15 @@ function ArticleContentSection({ section }: { section: ArticleSection }) {
         </p>
       ) : null}
       {section.body ? (
-        <p className="font-heading text-[clamp(1.125rem,2vw,1.75rem)] font-medium leading-[120%] text-black/60">
+        <p className="whitespace-pre-line font-heading text-[clamp(1.125rem,2vw,1.75rem)] font-medium leading-[120%] text-black/60">
           {section.body}
         </p>
+      ) : null}
+      {section.bodyHtml ? (
+        <div
+          className="font-heading text-[clamp(1.125rem,2vw,1.75rem)] font-medium leading-[150%] text-black/60 [&_a]:text-primary [&_a]:underline [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold [&_li]:mb-2 [&_ol]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-4 [&_p:last-child]:mb-0 [&_strong]:font-bold [&_ul]:mb-4 [&_ul]:list-disc [&_ul]:pl-6"
+          dangerouslySetInnerHTML={{ __html: section.bodyHtml }}
+        />
       ) : null}
       {section.bullets ? <ArticleBullets bullets={section.bullets} /> : null}
     </div>
@@ -175,10 +181,18 @@ export default function ArticlePopUpModal({
             </div>
 
             <div className="flex w-full flex-col gap-8">
-              <ArticleContentSection section={article.overview} />
-              <ArticleContentSection section={article.pros} />
-              <ArticleContentSection section={article.cons} />
-              <ArticleContentSection section={article.takeaway} />
+              {[article.overview, article.pros, article.cons, article.takeaway]
+                .filter(
+                  (section) =>
+                    section &&
+                    (section.intro ||
+                      section.body ||
+                      section.bodyHtml ||
+                      (section.bullets && section.bullets.length > 0)),
+                )
+                .map((section, index) => (
+                  <ArticleContentSection key={index} section={section} />
+                ))}
             </div>
 
             <NewsEngagementBar variant="page" />

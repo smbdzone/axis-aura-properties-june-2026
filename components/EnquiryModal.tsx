@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import { LuX } from "react-icons/lu";
+import { toast } from "sonner";
 import EnquiryDropdown from "@/components/EnquiryDropdown";
 import { countries, defaultCountryCode, getCountryByCode } from "@/components/data/countries";
 import {
@@ -72,9 +73,13 @@ function FieldGroup({
 export default function EnquiryModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [countryCode, setCountryCode] = useState(defaultCountryCode);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
   const [budget, setBudget] = useState("");
   const [propertyType, setPropertyType] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const titleId = useId();
   const countryId = useId();
   const budgetId = useId();
@@ -122,9 +127,62 @@ export default function EnquiryModal() {
     };
   }, [isOpen, dismiss]);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    dismiss();
+
+    if (!firstName.trim() || !phoneNumber.trim() || !email.trim()) {
+      toast.error("Please fill in your name, phone, and email.");
+      return;
+    }
+    if (!budget) {
+      toast.error("Please select your budget.");
+      return;
+    }
+    if (!propertyType) {
+      toast.error("Please select a property type.");
+      return;
+    }
+
+    setSubmitting(true);
+    const toastId = toast.loading("Submitting your enquiry...");
+
+    try {
+      const response = await fetch("/api/enquiry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          phone: `${selectedCountry.dialCode} ${phoneNumber.trim()}`,
+          email: email.trim(),
+          budget,
+          type: propertyType,
+        }),
+      });
+
+      const data = (await response.json().catch(() => ({}))) as {
+        message?: string;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Unable to submit your enquiry right now.");
+      }
+
+      toast.success("Thanks! Your enquiry has been submitted. We'll be in touch soon.", {
+        id: toastId,
+      });
+      dismiss();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to submit your enquiry right now. Please try again.",
+        { id: toastId },
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -199,7 +257,7 @@ export default function EnquiryModal() {
                     Privacy Note
                   </p>
                   <p className="font-heading text-sm font-medium leading-[150%] text-white/90 sm:text-xl">
-                    By clicking submit, you consent to Suits and Sand contacting you
+                    By clicking submit, you consent to Axis Aura contacting you
                     via phone, email, or WhatsApp regarding our products and
                     services. You can opt out at any time. For more details, view
                     our{" "}
@@ -217,11 +275,12 @@ export default function EnquiryModal() {
               <button
                 type="submit"
                 form="enquiry-form"
-                className={`${PRIMARY_SHINE_SURFACE_CLASS} flex h-[49px] w-full shrink-0 cursor-pointer items-center justify-center rounded-3xl border border-accent-light font-heading text-2xl font-medium leading-none text-white transition-opacity hover:opacity-90`}
+                disabled={submitting}
+                className={`${PRIMARY_SHINE_SURFACE_CLASS} flex h-[49px] w-full shrink-0 cursor-pointer items-center justify-center rounded-3xl border border-accent-light font-heading text-2xl font-medium leading-none text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60`}
               >
                 <PrimaryShineBackdrop className="rounded-3xl" />
                 <PrimaryShineAccents size="button" />
-                <span className="relative z-10">Submit</span>
+                <span className="relative z-10">{submitting ? "Submitting..." : "Submit"}</span>
               </button>
             </div>
 
@@ -245,6 +304,8 @@ export default function EnquiryModal() {
                         type="text"
                         required
                         aria-label="First name"
+                        value={firstName}
+                        onChange={(event) => setFirstName(event.target.value)}
                         className={fieldInputClass}
                       />
                     </div>
@@ -255,6 +316,8 @@ export default function EnquiryModal() {
                         type="text"
                         required
                         aria-label="Last name"
+                        value={lastName}
+                        onChange={(event) => setLastName(event.target.value)}
                         className={fieldInputClass}
                       />
                     </div>
@@ -304,6 +367,8 @@ export default function EnquiryModal() {
                       type="email"
                       required
                       aria-label="Email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
                       className={fieldInputClass}
                     />
                   </div>

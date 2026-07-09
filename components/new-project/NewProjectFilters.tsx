@@ -369,6 +369,8 @@ export default function NewProjectFilters({
   lockedDeveloper,
   showHeading = true,
   sectionId,
+  areaOptions = areaFilterOptions,
+  developerOptions = developerFilterOptions,
 }: {
   variant?: PropertyFilterVariant;
   headingId?: string;
@@ -380,6 +382,8 @@ export default function NewProjectFilters({
   };
   showHeading?: boolean;
   sectionId?: string;
+  areaOptions?: NewProjectFilterOption[];
+  developerOptions?: NewProjectFilterOption[];
 }) {
   const updateFilters = (patch: Partial<PropertyFilterValues>) => {
     onFiltersChange({ ...filters, ...patch });
@@ -411,7 +415,7 @@ export default function NewProjectFilters({
             />
             <NewProjectFilterSelect
               label="Area"
-              options={areaFilterOptions}
+              options={areaOptions}
               value={filters.area}
               onChange={(area) => updateFilters({ area })}
             />
@@ -420,7 +424,7 @@ export default function NewProjectFilters({
             ) : (
               <NewProjectFilterSelect
                 label="Developer"
-                options={developerFilterOptions}
+                options={developerOptions}
                 value={filters.developer}
                 onChange={(developer) => updateFilters({ developer })}
               />

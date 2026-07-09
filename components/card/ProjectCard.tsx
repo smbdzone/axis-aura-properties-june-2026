@@ -21,7 +21,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
   } = project;
 
   return (
-    <article className="relative isolate flex h-[506px] w-full max-w-[400px] flex-col items-center justify-center gap-4 overflow-hidden rounded-3xl border border-accent-light p-4">
+    <article className="relative isolate flex h-[526px] w-full max-w-[400px] flex-col items-center justify-start gap-4 overflow-hidden rounded-3xl border border-accent-light p-4">
       <div
         className="absolute inset-0 rounded-3xl bg-primary"
         aria-hidden="true"
@@ -62,17 +62,17 @@ export default function ProjectCard({ project }: ProjectCardProps) {
         </div>
 
         <ul className="mt-2 flex flex-col gap-2 font-sans text-xl leading-7 text-white">
-          <li className="flex items-center gap-2">
-            <LuMapPin className="size-3.5 shrink-0" aria-hidden="true" />
-            {location}
+          <li className="flex items-start gap-2">
+            <LuMapPin className="mt-1.5 size-3.5 shrink-0" aria-hidden="true" />
+            <span className="line-clamp-2">{location}</span>
           </li>
           <li className="flex items-center gap-2">
             <LuUser className="size-3.5 shrink-0" aria-hidden="true" />
-            {developer}
+            <span className="line-clamp-1">{developer}</span>
           </li>
           <li className="flex items-center gap-2">
             <LuBuilding2 className="size-3.5 shrink-0" aria-hidden="true" />
-            {propertyType}
+            <span className="line-clamp-1">{propertyType}</span>
           </li>
         </ul>
       </div>

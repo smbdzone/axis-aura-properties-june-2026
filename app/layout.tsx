@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Toaster } from "sonner";
 import Footer from "@/components/layout/Footer";
 import Navbar from "@/components/layout/Navbar";
 import "./globals.css";
@@ -25,6 +26,7 @@ export default function RootLayout({
         <Navbar />
         {children}
         <Footer />
+        <Toaster position="top-right" richColors closeButton duration={3500} />
       </body>
     </html>
   );

@@ -1,9 +1,7 @@
-import { careerOpenPositions } from "@/components/data/careerPositions";
-
 export const careerApplySection = {
-  title: "Why Join Suits & Sand?",
+  title: "Why AXIS AURA?",
   description:
-    "At Suits and Sand, we're making real estate accessible to everyone. Join a fast-paced, high-growth team where your impact matters. We invest in our people not just through career growth, but by offering subsidized real estate opportunities to help build lasting wealth.",
+    "At AXIS AURA, we're making real estate accessible to everyone. Join a fast-paced, high-growth team where your impact matters. We invest in our people not just through career growth, but by offering subsidized real estate opportunities to help build lasting wealth.",
   applyTitle: "Apply Now",
   requirements: {
     title: "Mandatory Requirement",
@@ -20,8 +18,4 @@ export const careerApplySection = {
     cvUploadLabel: "Drag and Drop or upload CV here",
     submitLabel: "Apply Now",
   },
-  roleOptions: careerOpenPositions.positions.map((position) => ({
-    value: position.id,
-    label: position.title,
-  })),
 };
