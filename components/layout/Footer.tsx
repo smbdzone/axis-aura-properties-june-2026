@@ -21,8 +21,8 @@ const primaryNavLinks = [
 const secondaryNavLinks = [
   { label: "FAQs", href: "/faq" },
   { label: "Contact Us", href: "/contact" },
-  { label: "Privacy Policy", href: "#" },
-  { label: "Terms & Conditions", href: "#" },
+  { label: "Privacy Policy", href: "/privacy-policy" },
+  { label: "Terms & Conditions", href: "/terms-and-conditions" },
 ];
 
 const socialLinks = [

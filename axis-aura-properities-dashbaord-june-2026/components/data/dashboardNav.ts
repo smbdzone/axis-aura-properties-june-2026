@@ -75,7 +75,29 @@ export const dashboardMainNavItems: DashboardNavItem[] = [
     icon: "mingcute:building-6-fill",
   },
   { label: "Careers", href: "/careers", icon: "majesticons:suitcase" },
-  { label: "FAQs", href: "/faqs", icon: "mdi:frequently-asked-questions" },
+  {
+    label: "Content",
+    href: "/content-management",
+    icon: "mdi:file-document-edit-outline",
+    hasChevron: true,
+    subItems: [
+      {
+        label: "FAQs",
+        href: "/content-management/faqs",
+        icon: "mdi:frequently-asked-questions",
+      },
+      {
+        label: "Privacy Policy",
+        href: "/content-management/privacy-policy",
+        icon: "mdi:shield-lock-outline",
+      },
+      {
+        label: "Terms & Conditions",
+        href: "/content-management/terms-and-conditions",
+        icon: "mdi:file-sign",
+      },
+    ],
+  },
   { label: "Discover", href: "/discover", icon: "mdi:play-box-multiple" },
 ];
 
@@ -113,6 +135,9 @@ export function getDashboardPageTitle(pathname: string): string {
   if (pathname === "/careers/add") return "Post a Job";
   if (pathname === "/discover/add") return "Add a Discover Video";
   if (pathname.startsWith("/discover/edit/")) return "Edit Discover Video";
+  if (pathname === "/content-management/faqs") return "FAQs";
+  if (pathname === "/content-management/privacy-policy") return "Privacy Policy";
+  if (pathname === "/content-management/terms-and-conditions") return "Terms & Conditions";
   if (pathname === "/notifications") return "Notifications";
 
   for (const item of dashboardAllNavItems) {

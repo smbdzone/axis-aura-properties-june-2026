@@ -24,6 +24,8 @@ import userRoutes from './api/users/user.routes';
 import analyticsRoutes from './api/analytics/routes';
 import faqRoutes from './api/faqs/faq.routes';
 import discoverRoutes from './api/discover/discover.routes';
+import contentPageRoutes from './api/contentPages/contentPage.routes';
+import { seedContentPages } from './utils/seedContentPages';
 
 
 const app = express();
@@ -35,7 +37,7 @@ const allowedOrigins = [
   'http://localhost:3000',
   'https://suitandsants.smbdigitalzone.com',
   'http://localhost:3001',
-    ...(HOTSPOT_FRONTEND_URL ? [HOTSPOT_FRONTEND_URL] : []),
+  ...(HOTSPOT_FRONTEND_URL ? [HOTSPOT_FRONTEND_URL] : []),
 ];
 
 app.use(cors({
@@ -59,7 +61,9 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 
 // Connect to DB
-connectDB();
+void connectDB().then(async () => {
+  await seedContentPages();
+});
 
 // Health check route
 app.get('/health', (_req, res) => {
@@ -82,6 +86,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/faqs', faqRoutes);
 app.use('/api/discover', discoverRoutes);
+app.use('/api/content-pages', contentPageRoutes);
 
 
 

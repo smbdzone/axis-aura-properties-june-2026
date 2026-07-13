@@ -30,5 +30,9 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "axis-aura-properities-dashbaord-june-2026",
+    "axis-aura-Back-End-june-2026"
+  ]
 }

@@ -11,6 +11,7 @@
     "seed:developers": "ts-node src/seed/developerSeed.ts",
     "seed:articles": "ts-node src/seed/articleSeed.ts",
     "seed:discover": "ts-node src/seed/discoverSeed.ts",
+    "seed:content-pages": "ts-node src/seed/contentPageSeed.ts",
     "build": "tsc"
   },
   "keywords": [],
