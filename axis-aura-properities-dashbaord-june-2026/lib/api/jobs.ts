@@ -1,4 +1,4 @@
-import { apiRequest, apiFormRequest } from "@/lib/api/client";
+import { apiRequest, apiFormRequest, apiList } from "@/lib/api/client";
 
 export type JobLevel = "Entry" | "Mid Level" | "Senior" | "Expert";
 
@@ -19,7 +19,7 @@ export type ApiJob = {
 };
 
 export async function fetchJobs() {
-  return apiRequest<ApiJob[]>("/api/jobs");
+  return (await apiList<ApiJob>("/api/jobs")).items;
 }
 
 export async function fetchJobById(id: string) {

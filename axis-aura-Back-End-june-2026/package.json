@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts",
     "dev:plain": "ts-node src/index.ts",
     "seed:faqs": "ts-node src/seed/faqSeed.ts",
@@ -25,11 +26,14 @@
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.6.0",
     "googleapis": "^150.0.1",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.15.1",
     "multer": "^2.0.0",
-    "nodemailer": "^7.0.3"
+    "nodemailer": "^9.0.3",
+    "sanitize-html": "^2.17.6"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
@@ -42,9 +46,11 @@
     "@types/multer": "^1.4.12",
     "@types/node": "^22.15.29",
     "@types/nodemailer": "^6.4.17",
+    "@types/sanitize-html": "^2.16.1",
     "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.10"
   },
   "description": ""
 }

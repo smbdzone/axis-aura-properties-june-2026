@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
+import RouteGuard from "@/components/auth/RouteGuard";
 
 export default function DashboardShell({
   children,
@@ -21,7 +22,9 @@ export default function DashboardShell({
       <Sidebar />
       <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <Navbar />
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto">
+          <RouteGuard>{children}</RouteGuard>
+        </main>
       </div>
     </div>
   );

@@ -5,6 +5,9 @@ dotenv.config();
 
 const mongoURI = process.env.MONGO_URI || '';
 
+// Strip Mongo query operators ($ne, $gt, …) out of user-supplied filter objects.
+mongoose.set('sanitizeFilter', true);
+
 export const connectDB = async () => {
   try {
     await mongoose.connect(mongoURI);

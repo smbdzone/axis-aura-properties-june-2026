@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
-import nodemailer from 'nodemailer';
 import ContactModel from '../../models/contact.model';
+import { getMailFrom, getTransporter } from '../../services/mailer';
+import { buildPageMeta, getPagination, MAX_UNPAGINATED } from '../../utils/pagination';
 
 export const submitContact = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -23,17 +24,12 @@ export const submitContact = async (req: Request, res: Response): Promise<void> 
 
     // Best-effort email notifications; never block the submission on email failures
     try {
-      if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-        const transporter = nodemailer.createTransport({
-          service: 'Gmail',
-          auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
-          },
-        });
+      const transporter = getTransporter();
+      if (transporter) {
+        const mailFrom = getMailFrom();
 
         const userMailPromise = transporter.sendMail({
-          from: process.env.EMAIL_USER,
+          from: mailFrom,
           to: email,
           subject: 'We have received your message - AXIS AURA',
           text: `Hi ${fullName},
@@ -48,8 +44,8 @@ AXIS AURA`,
         });
 
         const adminMailPromise = transporter.sendMail({
-          from: process.env.EMAIL_USER,
-          to: process.env.EMAIL_TO || process.env.EMAIL_USER,
+          from: mailFrom,
+          to: process.env.EMAIL_TO || mailFrom,
           subject: `New Contact Message: ${fullName}`,
           text: `A new contact message has been submitted.
 
@@ -73,10 +69,21 @@ Message: ${message}`,
   }
 };
 
-export const getAllContacts = async (_req: Request, res: Response): Promise<void> => {
+export const getAllContacts = async (req: Request, res: Response): Promise<void> => {
   try {
-    const contacts = await ContactModel.find().sort({ date: -1 });
-    res.json(contacts);
+    const pagination = getPagination(req);
+    const query = ContactModel.find().sort({ date: -1 });
+
+    if (!pagination.paginated) {
+      res.json(await query.limit(MAX_UNPAGINATED));
+      return;
+    }
+
+    const [contacts, total] = await Promise.all([
+      query.skip(pagination.skip).limit(pagination.limit),
+      ContactModel.countDocuments(),
+    ]);
+    res.json({ data: contacts, pagination: buildPageMeta(total, pagination) });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

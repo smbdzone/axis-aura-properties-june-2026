@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/api/client";
+import { apiRequest, apiList } from "@/lib/api/client";
 
 export type ApiJobApplication = {
   _id: string;
@@ -16,7 +16,7 @@ export type ApiJobApplication = {
 };
 
 export async function fetchApplications() {
-  return apiRequest<ApiJobApplication[]>("/api/jobApplication");
+  return (await apiList<ApiJobApplication>("/api/jobApplication")).items;
 }
 
 export async function deleteApplication(id: string) {

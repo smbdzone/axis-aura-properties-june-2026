@@ -9,7 +9,7 @@ import {
   approveComment,
   rejectComment,
 } from './comment.controller';
-import { authenticate, requireSuperAdmin } from '../../middleware/auth.middleware';
+import { authenticate, requirePermission } from '../../middleware/auth.middleware';
 
 const router = express.Router();
 
@@ -25,10 +25,10 @@ router.post('/:id/like', toggleLike);
 
 // -------- Super Admin only --------
 // View every comment (all statuses) for moderation
-router.get('/', authenticate, requireSuperAdmin, getAllCommentsForAdmin);
+router.get('/', authenticate, requirePermission('comments'), getAllCommentsForAdmin);
 // Approve / reject / delete
-router.patch('/:id/approve', authenticate, requireSuperAdmin, approveComment);
-router.patch('/:id/reject', authenticate, requireSuperAdmin, rejectComment);
-router.delete('/:id', authenticate, requireSuperAdmin, deleteComment);
+router.patch('/:id/approve', authenticate, requirePermission('comments'), approveComment);
+router.patch('/:id/reject', authenticate, requirePermission('comments'), rejectComment);
+router.delete('/:id', authenticate, requirePermission('comments'), deleteComment);
 
 export default router;

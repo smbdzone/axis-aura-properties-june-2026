@@ -8,7 +8,13 @@ import {
   deleteDeveloper,
   getDeveloperById,
 } from './developer.controller';
-import { authenticate, requireSuperAdmin } from '../../middleware/auth.middleware';
+import { authenticate, requirePermission } from '../../middleware/auth.middleware';
+import {
+  IMAGE_EXTENSIONS,
+  IMAGE_MIME_TYPES,
+  matchesAllowlist,
+  safeFilename,
+} from '../../config/uploadRules';
 
 const router = express.Router();
 const useCloudinary = process.env.USE_CLOUDINARY === 'true';
@@ -21,64 +27,26 @@ const storage = useCloudinary
       cb(null, path.join(__dirname, '..', '..', '..', 'uploads')); // Adjust path for local storage
     },
     filename(req, file, cb) {
-      cb(null, Date.now() + path.extname(file.originalname));
+      cb(null, safeFilename(file));
     },
   });
 
-// === File Filter (optional) ===
-const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
-const blockedExecutableTypes = [
-  'application/x-msdownload',
-  'application/x-msdos-program',
-  'application/x-dosexec',
-  'application/x-executable',
-  'application/x-mach-binary',
-  'application/x-sh',
-  'application/x-bat',
-  'application/x-csh',
-  'application/x-msi',
-  'application/java-archive',
-  'application/javascript',
-  'text/javascript',
-  'text/x-shellscript',
-];
-const blockedExecutableExtensions = [
-  '.exe',
-  '.bat',
-  '.cmd',
-  '.com',
-  '.msi',
-  '.dll',
-  '.sh',
-  '.bash',
-  '.zsh',
-  '.ps1',
-  '.jar',
-  '.js',
-  '.vbs',
-  '.scr',
-];
+// === File Filter (allowlist) ===
+// SVG is intentionally not allowed: it can carry script and would execute if the
+// file were ever opened directly from the uploads origin.
 const fileFilter = (req: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const fileName = (file.originalname || '').toLowerCase();
-  const isExecutableType = blockedExecutableTypes.includes(file.mimetype);
-  const isExecutableExtension = blockedExecutableExtensions.some(ext => fileName.endsWith(ext));
-  if (isExecutableType || isExecutableExtension) {
-    return cb(new Error('Executable or script files are not allowed.'));
+  if (file.fieldname !== 'logo') {
+    return cb(new Error(`Unexpected file field: ${file.fieldname}`));
   }
 
-  if (file.fieldname === 'logo') {
-    const isSvg = file.mimetype === 'image/svg+xml' || fileName.endsWith('.svg');
-    if (allowedImageTypes.includes(file.mimetype) || isSvg) {
-      cb(null, true);
-    } else {
-      return cb(new Error('Only image files (jpeg, png, webp, svg) are allowed for the logo.'));
-    }
-  } else {
-    cb(null, true); // allow other fields if added later
+  if (!matchesAllowlist(file, IMAGE_MIME_TYPES, IMAGE_EXTENSIONS)) {
+    return cb(new Error('Only jpeg, png, webp, gif, or avif images are allowed for the logo.'));
   }
+
+  cb(null, true);
 };
 
-const upload = multer({ storage, fileFilter });
+const upload = multer({ storage, fileFilter, limits: { fileSize: 10 * 1024 * 1024, files: 1 } });
 
 // === Routes ===
 // Public read access
@@ -86,8 +54,8 @@ router.get('/', getDevelopers);
 router.get('/:id', getDeveloperById);
 
 // Write access restricted to Super Admin only
-router.post('/', authenticate, requireSuperAdmin, upload.single('logo'), createDeveloper);
-router.put('/:id', authenticate, requireSuperAdmin, upload.single('logo'), updateDeveloper);
-router.delete('/:id', authenticate, requireSuperAdmin, deleteDeveloper);
+router.post('/', authenticate, requirePermission('developers'), upload.single('logo'), createDeveloper);
+router.put('/:id', authenticate, requirePermission('developers'), upload.single('logo'), updateDeveloper);
+router.delete('/:id', authenticate, requirePermission('developers'), deleteDeveloper);
 
 export default router;

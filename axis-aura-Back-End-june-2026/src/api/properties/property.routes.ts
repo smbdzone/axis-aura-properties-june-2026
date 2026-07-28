@@ -10,7 +10,15 @@ import {
   deleteProperty,
   updateProperty,
 } from './property.controller';
-import { authenticate, requireSuperAdmin } from '../../middleware/auth.middleware';
+import { authenticate, requirePermission } from '../../middleware/auth.middleware';
+import {
+  DOCUMENT_EXTENSIONS,
+  DOCUMENT_MIME_TYPES,
+  IMAGE_EXTENSIONS,
+  IMAGE_MIME_TYPES,
+  matchesAllowlist,
+  safeFilename,
+} from '../../config/uploadRules';
 
 const router = express.Router();
 const useCloudinary = process.env.USE_CLOUDINARY === 'true';
@@ -23,52 +31,13 @@ const storage = useCloudinary
       cb(null, path.join(__dirname, '..', '..', '..', 'uploads'));
     },
     filename(req, file, cb) {
-      cb(null, Date.now() + '_' + file.originalname);
+      cb(null, safeFilename(file));
     },
   });
 
-const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
-const allowedBrochureTypes = [
-  'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-];
-const blockedExecutableTypes = [
-  'application/x-msdownload',
-  'application/x-msdos-program',
-  'application/x-dosexec',
-  'application/x-executable',
-  'application/x-mach-binary',
-  'application/x-sh',
-  'application/x-bat',
-  'application/x-csh',
-  'application/x-msi',
-  'application/java-archive',
-  'application/javascript',
-  'text/javascript',
-  'text/x-shellscript',
-];
-const blockedExecutableExtensions = [
-  '.exe',
-  '.bat',
-  '.cmd',
-  '.com',
-  '.msi',
-  '.dll',
-  '.sh',
-  '.bash',
-  '.zsh',
-  '.ps1',
-  '.jar',
-  '.js',
-  '.vbs',
-  '.scr',
-];
-
+// Allowlist by field purpose: brochures are PDF/DOCX, everything else is an image.
 const fileFilter = (req: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const { fieldname, mimetype } = file;
-  const fileName = (file.originalname || '').toLowerCase();
-  const isExecutableType = blockedExecutableTypes.includes(mimetype);
-  const isExecutableExtension = blockedExecutableExtensions.some(ext => fileName.endsWith(ext));
+  const { fieldname } = file;
   const isBrochureField = fieldname === 'brochureFile';
   const isImageField =
     fieldname === 'propertyImages' ||
@@ -77,31 +46,27 @@ const fileFilter = (req: Express.Request, file: Express.Multer.File, cb: multer.
     /^floor_\d+_defaultLayout$/.test(fieldname) ||
     /^floor_\d+_unit_.+/.test(fieldname);
 
-  if (isExecutableType || isExecutableExtension) {
-    return cb(new Error('Executable or script files are not allowed.'));
-  }
-
   if (isBrochureField) {
-    if (allowedBrochureTypes.includes(mimetype)) {
-      cb(null, true);
-    } else {
+    if (!matchesAllowlist(file, DOCUMENT_MIME_TYPES, DOCUMENT_EXTENSIONS)) {
       return cb(new Error('Only PDF or DOCX files are allowed for brochure.'));
     }
-  } else if (isImageField) {
-    if (allowedImageTypes.includes(mimetype)) {
-      cb(null, true);
-    } else {
-      return cb(new Error('Only image files are allowed for layouts and units.'));
-    }
-  } else {
-    return cb(new Error(`Unexpected file field: ${fieldname}`));
+    return cb(null, true);
   }
+
+  if (isImageField) {
+    if (!matchesAllowlist(file, IMAGE_MIME_TYPES, IMAGE_EXTENSIONS)) {
+      return cb(new Error('Only jpeg, png, webp, gif, or avif images are allowed.'));
+    }
+    return cb(null, true);
+  }
+
+  return cb(new Error(`Unexpected file field: ${fieldname}`));
 };
 
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 200 * 1024 * 1024 },
+  limits: { fileSize: 25 * 1024 * 1024, files: 60 },
 });
 
 
@@ -133,10 +98,10 @@ router.get('/', getProperties);
 router.get('/:id', getPropertyById);
 
 // Write access restricted to Super Admin only
-router.post('/bulk-create', authenticate, requireSuperAdmin, bulkCreateProperties);
-router.post('/', authenticate, requireSuperAdmin, upload.fields(uploadFields), createProperty);
-router.post('/bulk-delete', authenticate, requireSuperAdmin, bulkDeleteProperties);
-router.delete('/:id', authenticate, requireSuperAdmin, deleteProperty);
-router.put('/:id', authenticate, requireSuperAdmin, upload.fields(uploadFields), updateProperty);
+router.post('/bulk-create', authenticate, requirePermission('properties'), bulkCreateProperties);
+router.post('/', authenticate, requirePermission('properties'), upload.fields(uploadFields), createProperty);
+router.post('/bulk-delete', authenticate, requirePermission('properties'), bulkDeleteProperties);
+router.delete('/:id', authenticate, requirePermission('properties'), deleteProperty);
+router.put('/:id', authenticate, requirePermission('properties'), upload.fields(uploadFields), updateProperty);
 
 export default router;

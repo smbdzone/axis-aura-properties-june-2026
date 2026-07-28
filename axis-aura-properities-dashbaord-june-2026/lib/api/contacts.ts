@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/api/client";
+import { apiRequest, apiList } from "@/lib/api/client";
 
 export type ApiContact = {
   _id: string;
@@ -12,7 +12,7 @@ export type ApiContact = {
 };
 
 export async function fetchContacts() {
-  return apiRequest<ApiContact[]>("/api/contacts");
+  return (await apiList<ApiContact>("/api/contacts")).items;
 }
 
 export async function deleteContact(id: string) {

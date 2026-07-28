@@ -1,9 +1,18 @@
 import { Request, Response } from 'express';
+import bcrypt from 'bcrypt';
 import User from '../../models/user.model';
 import cloudinary from '../../services/cloudinaryClient';
 import { Readable } from 'stream';
+import { buildPageMeta, getPagination, MAX_UNPAGINATED } from '../../utils/pagination';
+import { invalidateAllCachedUsers, invalidateCachedUser } from '../../services/userCache';
 
 const useCloudinary = process.env.USE_CLOUDINARY === 'true';
+
+// Never send password hashes to the client.
+const PUBLIC_USER_FIELDS = '-password';
+const BCRYPT_ROUNDS = 10;
+
+const hashPassword = (password: string): Promise<string> => bcrypt.hash(password, BCRYPT_ROUNDS);
 type Role = 'Super Admin' | 'Maintenance' | 'Marketing';
 type PermissionKey =
   | 'dashboard'
@@ -85,10 +94,21 @@ const uploadProfilePictureToCloudinary = async (file: Express.Multer.File): Prom
 // =============================
 // GET ALL USERS
 // =============================
-export const getUsers = async (_req: Request, res: Response): Promise<void> => {
+export const getUsers = async (req: Request, res: Response): Promise<void> => {
   try {
-    const users = await User.find();
-    res.json(users);
+    const pagination = getPagination(req);
+    const query = User.find().select(PUBLIC_USER_FIELDS).sort({ createdAt: -1 });
+
+    if (!pagination.paginated) {
+      res.json(await query.limit(MAX_UNPAGINATED));
+      return;
+    }
+
+    const [users, total] = await Promise.all([
+      query.skip(pagination.skip).limit(pagination.limit),
+      User.countDocuments(),
+    ]);
+    res.json({ data: users, pagination: buildPageMeta(total, pagination) });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -107,6 +127,22 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
+    if (typeof password !== 'string' || password.length < 8) {
+      res.status(400).json({ message: 'Password must be at least 8 characters.' });
+      return;
+    }
+
+    if (typeof email !== 'string') {
+      res.status(400).json({ message: 'Invalid email.' });
+      return;
+    }
+
+    const existing = await User.findOne({ email });
+    if (existing) {
+      res.status(409).json({ message: 'Email already registered' });
+      return;
+    }
+
     let profilePictureUrl = '';
     if (profilePictureFile) {
       profilePictureUrl = useCloudinary
@@ -117,7 +153,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
     const newUser = new User({
       fullName,
       email,
-      password, // Make sure to hash this in production!
+      password: await hashPassword(password),
       role,
       status,
       profilePicture: profilePictureUrl || undefined,
@@ -125,7 +161,10 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
     });
 
     await newUser.save();
-    res.status(201).json(newUser);
+
+    const created = newUser.toObject();
+    delete (created as { password?: string }).password;
+    res.status(201).json(created);
   } catch (error) {
     console.error('Create User Error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -147,13 +186,21 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    const updateData: any = {
-      fullName,
-      email,
-      password,
-      role,
-      status,
-    };
+    const updateData: any = {};
+
+    if (typeof fullName === 'string') updateData.fullName = fullName;
+    if (typeof email === 'string') updateData.email = email;
+    if (typeof role === 'string') updateData.role = role;
+    if (typeof status === 'string') updateData.status = status;
+
+    // Only touch the password when a new one was actually submitted, and never store it raw.
+    if (password !== undefined && password !== null && password !== '') {
+      if (typeof password !== 'string' || password.length < 8) {
+        res.status(400).json({ message: 'Password must be at least 8 characters.' });
+        return;
+      }
+      updateData.password = await hashPassword(password);
+    }
 
     if (profilePictureFile) {
       updateData.profilePicture = useCloudinary
@@ -165,7 +212,11 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
       updateData.permissions = getDefaultPermissionsByRole(role as Role);
     }
 
-    const updatedUser = await User.findByIdAndUpdate(id, updateData, { new: true });
+    const updatedUser = await User.findByIdAndUpdate(id, updateData, { new: true }).select(
+      PUBLIC_USER_FIELDS,
+    );
+    // Role/status/permission changes must take effect on this user's next request.
+    invalidateCachedUser(id);
     res.json(updatedUser);
   } catch (error) {
     console.error('Update User Error:', error);
@@ -178,7 +229,24 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
 // =============================
 export const deleteUser = async (req: Request, res: Response): Promise<void> => {
   try {
+    const target = await User.findById(req.params.id).select('role');
+    if (!target) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    // Don't allow the last Super Admin to be removed — that would lock everyone out.
+    if (target.role === 'Super Admin') {
+      const superAdmins = await User.countDocuments({ role: 'Super Admin' });
+      if (superAdmins <= 1) {
+        res.status(400).json({ message: 'Cannot delete the last Super Admin.' });
+        return;
+      }
+    }
+
     await User.findByIdAndDelete(req.params.id);
+    // Revoke any live session immediately.
+    invalidateCachedUser(req.params.id);
     res.status(200).json({ message: 'User deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -190,7 +258,7 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
 // =============================
 export const getUserById = async (req: Request, res: Response): Promise<void> => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(req.params.id).select(PUBLIC_USER_FIELDS);
     if (!user) {
       res.status(404).json({ message: 'User not found' });
       return;
@@ -227,6 +295,8 @@ export const updateRolePermissions = async (req: Request, res: Response): Promis
 
     const permissions = normalizePermissions(req.body.permissions, role);
     await User.updateMany({ role }, { $set: { permissions } });
+    // Affects an unknown set of users by role — flush the whole cache.
+    invalidateAllCachedUsers();
 
     res.status(200).json({ role, permissions });
   } catch (error) {

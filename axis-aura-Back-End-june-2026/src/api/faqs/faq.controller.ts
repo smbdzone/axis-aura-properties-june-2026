@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
 import { Faq } from '../../models/faq.model';
+import { MAX_UNPAGINATED } from '../../utils/pagination';
 
 export const getFaqs = async (_req: Request, res: Response): Promise<void> => {
   try {
-    const faqs = await Faq.find().sort({ createdAt: 1 });
+    const faqs = await Faq.find().sort({ createdAt: 1 }).limit(MAX_UNPAGINATED);
     res.json(faqs);
   } catch (error) {
     console.error('Error in getFaqs:', error);

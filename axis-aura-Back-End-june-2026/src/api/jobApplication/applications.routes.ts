@@ -1,6 +1,6 @@
 import express from 'express';
 import { bulkDeleteApplications, deleteApplication, getApplications, upload, submitApplication } from './submitApplication.controller';
-import { authenticate, requireSuperAdmin } from '../../middleware/auth.middleware';
+import { authenticate, requirePermission } from '../../middleware/auth.middleware';
 
 const router = express.Router();
 
@@ -8,8 +8,8 @@ const router = express.Router();
 router.post('/', upload, submitApplication);
 
 // Super Admin only: view and manage received applications
-router.get('/', authenticate, requireSuperAdmin, getApplications);
-router.delete('/:id', authenticate, requireSuperAdmin, deleteApplication);
-router.post('/bulk-delete', authenticate, requireSuperAdmin, bulkDeleteApplications);
+router.get('/', authenticate, requirePermission('jobApplications'), getApplications);
+router.delete('/:id', authenticate, requirePermission('jobApplications'), deleteApplication);
+router.post('/bulk-delete', authenticate, requirePermission('jobApplications'), bulkDeleteApplications);
 
 export default router;

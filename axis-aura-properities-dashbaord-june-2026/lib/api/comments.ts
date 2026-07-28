@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/api/client";
+import { apiRequest, apiList } from "@/lib/api/client";
 
 export type ApiComment = {
   _id: string;
@@ -14,7 +14,7 @@ export type ApiComment = {
 };
 
 export async function fetchComments() {
-  return apiRequest<ApiComment[]>("/api/comments");
+  return (await apiList<ApiComment>("/api/comments")).items;
 }
 
 export async function approveComment(id: string) {

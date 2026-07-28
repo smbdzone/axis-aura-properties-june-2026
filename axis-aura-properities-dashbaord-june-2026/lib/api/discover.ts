@@ -1,4 +1,4 @@
-import { apiFormRequest, apiRequest } from "@/lib/api/client";
+import { apiFormRequest, apiRequest, apiList } from "@/lib/api/client";
 
 export type ApiDiscover = {
   _id: string;
@@ -12,7 +12,7 @@ export type ApiDiscover = {
 };
 
 export async function fetchDiscoverItems() {
-  return apiRequest<ApiDiscover[]>("/api/discover");
+  return (await apiList<ApiDiscover>("/api/discover")).items;
 }
 
 export async function fetchDiscoverById(id: string) {

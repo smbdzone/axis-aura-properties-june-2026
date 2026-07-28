@@ -15,6 +15,7 @@ import {
 import SortDataDropdown from "@/components/ui/SortDataDropdown";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { toast } from "sonner";
+import PermissionGate from "@/components/auth/PermissionGate";
 
 const PAGE_SIZE = 6;
 
@@ -223,6 +224,7 @@ export default function CareersAdminSection() {
       <section className="mx-auto flex w-full  flex-col items-center gap-8 px-8 py-8">
         <div className="flex w-full flex-col items-center gap-6">
           <div className="flex h-[46px] w-full items-center justify-end gap-5">
+            <PermissionGate permission="careers" level="edit">
             <Link
               href="/careers/add"
               className="relative isolate flex h-[46px] w-[118px] items-center justify-center overflow-hidden rounded-xl border-[1.5px] border-[#669BBC] bg-[#003049] px-5"
@@ -231,6 +233,7 @@ export default function CareersAdminSection() {
                 Post a Job
               </span>
             </Link>
+            </PermissionGate>
           </div>
 
           <div className="flex w-full flex-col gap-6 rounded-2xl border-[1.5px] border-[#669BBC] p-4">
@@ -239,9 +242,11 @@ export default function CareersAdminSection() {
                 A-Z
               </h2>
               <div className="flex items-center gap-4">
+                <PermissionGate permission="careers" level="edit">
                 <button type="button" aria-label="Delete selected" onClick={requestDeleteSelected}>
                   <Icon icon="fluent:delete-16-regular" width={20} height={20} color="#003049" />
                 </button>
+                </PermissionGate>
                 <span className="h-7 w-0 border-l-2 border-[#669BBC]" aria-hidden="true" />
                 <SortDataDropdown
                   value={sortBy}

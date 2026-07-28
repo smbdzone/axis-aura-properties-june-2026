@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { Job } from '../../models/job.model';
 import cloudinary from '../../services/cloudinaryClient';
 import { Readable } from 'stream';
+import { sanitizeRichText, stripHtml } from '../../utils/sanitizeHtml';
+import { buildPageMeta, getPagination, MAX_UNPAGINATED } from '../../utils/pagination';
 
 const useCloudinary = process.env.USE_CLOUDINARY === 'true';
 
@@ -22,8 +24,19 @@ const uploadFileToCloudinary = async (file: Express.Multer.File): Promise<string
 
 export const getJobs = async (req: Request, res: Response): Promise<void> => {
   try {
-    const jobs = await Job.find();
-    res.json(jobs);
+    const pagination = getPagination(req);
+    const query = Job.find().sort({ createdAt: -1 });
+
+    if (!pagination.paginated) {
+      res.json(await query.limit(MAX_UNPAGINATED));
+      return;
+    }
+
+    const [jobs, total] = await Promise.all([
+      query.skip(pagination.skip).limit(pagination.limit),
+      Job.countDocuments(),
+    ]);
+    res.json({ data: jobs, pagination: buildPageMeta(total, pagination) });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -67,7 +80,11 @@ export const createJob = async (req: Request, res: Response): Promise<void> => {
         : `/uploads/${imageFile.filename}`;
     }
 
-    const newJob = new Job({ title, description, remunerationType, commission, salary, salaryPeriod, level, imageUrl });
+    const newJob = new Job({
+      title: stripHtml(title),
+      description: sanitizeRichText(description),
+      remunerationType, commission, salary, salaryPeriod, level, imageUrl,
+    });
     await newJob.save();
 
     res.status(201).json(newJob);
@@ -82,7 +99,11 @@ export const updateJob = async (req: Request, res: Response): Promise<void> => {
     const { title, description, remunerationType, commission, salary, salaryPeriod, level } = req.body;
     const imageFile = req.file;
 
-    const updateData: any = { title, description, remunerationType, commission, salary, salaryPeriod, level };
+    const updateData: any = {
+      title: title === undefined ? undefined : stripHtml(title),
+      description: description === undefined ? undefined : sanitizeRichText(description),
+      remunerationType, commission, salary, salaryPeriod, level,
+    };
 
     if (imageFile) {
       updateData.imageUrl = useCloudinary

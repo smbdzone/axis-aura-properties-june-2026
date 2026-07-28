@@ -1,4 +1,4 @@
-import { apiFormRequest, apiRequest } from "@/lib/api/client";
+import { apiFormRequest, apiRequest, apiList } from "@/lib/api/client";
 
 export type ApiDeveloper = {
   _id: string;
@@ -12,7 +12,7 @@ export type ApiDeveloper = {
 };
 
 export async function fetchDevelopers() {
-  return apiRequest<ApiDeveloper[]>("/api/developers");
+  return (await apiList<ApiDeveloper>("/api/developers")).items;
 }
 
 export async function fetchDeveloperById(id: string) {

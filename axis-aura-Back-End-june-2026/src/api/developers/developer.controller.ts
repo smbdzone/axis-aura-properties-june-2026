@@ -3,6 +3,8 @@ import Developer from '../../models/developer.model';
 import Property from '../../models/property.model';
 import cloudinary from '../../services/cloudinaryClient';
 import { Readable } from 'stream';
+import { sanitizeRichText, stripHtml } from '../../utils/sanitizeHtml';
+import { buildPageMeta, getPagination, MAX_UNPAGINATED } from '../../utils/pagination';
 
 const useCloudinary = process.env.USE_CLOUDINARY === 'true';
 
@@ -66,16 +68,30 @@ const uploadFileToCloudinary = async (file: Express.Multer.File): Promise<string
 // =============================
 // GET ALL DEVELOPERS
 // =============================
-export const getDevelopers = async (_req: Request, res: Response): Promise<void> => {
+export const getDevelopers = async (req: Request, res: Response): Promise<void> => {
   try {
-    const developers = await Developer.find().lean();
-    const developersWithStats = await Promise.all(
-      developers.map(async (developer) => {
-        const stats = await computeDeveloperStats(developer.title);
-        return { ...developer, ...stats };
-      }),
-    );
-    res.json(developersWithStats);
+    const pagination = getPagination(req);
+    const query = Developer.find().sort({ createdAt: -1 }).lean();
+
+    const withStats = (developers: Array<Record<string, unknown> & { title: string }>) =>
+      Promise.all(
+        developers.map(async (developer) => ({
+          ...developer,
+          ...(await computeDeveloperStats(developer.title)),
+        })),
+      );
+
+    if (!pagination.paginated) {
+      const developers = await query.limit(MAX_UNPAGINATED);
+      res.json(await withStats(developers));
+      return;
+    }
+
+    const [developers, total] = await Promise.all([
+      query.skip(pagination.skip).limit(pagination.limit),
+      Developer.countDocuments(),
+    ]);
+    res.json({ data: await withStats(developers), pagination: buildPageMeta(total, pagination) });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -102,8 +118,8 @@ export const createDeveloper = async (req: Request, res: Response): Promise<void
     }
 
     const newDeveloper = new Developer({
-      title,
-      description,
+      title: stripHtml(title),
+      description: sanitizeRichText(description),
       logoUrl,
       numberOfProjects,
       projectsHandedOver,
@@ -127,8 +143,8 @@ export const updateDeveloper = async (req: Request, res: Response): Promise<void
     const logoFile = req.file;
 
     const updateData: any = {
-      title,
-      description,
+      title: stripHtml(title),
+      description: sanitizeRichText(description),
       numberOfProjects,
       projectsHandedOver,
     };

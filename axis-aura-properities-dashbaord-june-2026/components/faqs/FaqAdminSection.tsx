@@ -12,6 +12,7 @@ import {
 import { ApiError } from "@/lib/api/client";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { toast } from "sonner";
+import PermissionGate from "@/components/auth/PermissionGate";
 
 const inputClass =
   "w-full rounded-xl border-[1.5px] border-[#669BBC] bg-white px-4 py-3 font-[family-name:var(--font-sandena)] text-sm font-medium text-[#003049] outline-none placeholder:text-black/40";
@@ -141,6 +142,7 @@ export default function FaqAdminSection() {
       />
 
       <section className="mx-auto flex w-full flex-col gap-8 px-8 py-8">
+        <PermissionGate permission="faqs" level="edit">
         <div
           ref={formRef}
           className="flex w-full flex-col gap-4 rounded-2xl border-[1.5px] border-accent-light p-6"
@@ -216,6 +218,7 @@ export default function FaqAdminSection() {
             </div>
           </div>
         </div>
+        </PermissionGate>
 
         <div className="flex w-full flex-col gap-3 rounded-2xl border-[1.5px] border-accent-light p-6">
           <div className="flex items-center justify-between">

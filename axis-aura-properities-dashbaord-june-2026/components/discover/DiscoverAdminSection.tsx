@@ -10,6 +10,7 @@ import {
 } from "@/lib/api/discover";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { toast } from "sonner";
+import PermissionGate from "@/components/auth/PermissionGate";
 
 type DeleteDialogState = { id: string; label: string } | null;
 
@@ -72,6 +73,7 @@ export default function DiscoverAdminSection() {
       <section className="mx-auto flex w-full flex-col items-center gap-8 px-8 py-8">
         <div className="flex w-full flex-col items-center gap-6">
           <div className="flex h-[46px] w-full items-center justify-end gap-5">
+            <PermissionGate superAdminOnly>
             <Link
               href="/discover/add"
               className="relative isolate flex h-[46px] w-[220px] items-center justify-center overflow-hidden rounded-xl border-[1.5px] border-[#669BBC] bg-[#003049] px-5"
@@ -80,6 +82,7 @@ export default function DiscoverAdminSection() {
                 Add a Video
               </span>
             </Link>
+            </PermissionGate>
           </div>
 
           <div className="flex w-full flex-col gap-4 rounded-2xl border-[1.5px] border-[#669BBC] p-4">
