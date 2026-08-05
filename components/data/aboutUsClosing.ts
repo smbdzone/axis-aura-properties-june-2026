@@ -5,6 +5,6 @@ Warm regards,
 Simo Berrada CEO,
 Axis Aura Properties`,
   tagline: "Where sophistication meets endless opportunities.",
-  logoSrc: "/logo.svg",
+  logoSrc: "/Logo.svg",
   logoAlt: "Axis Aura Properties",
 };

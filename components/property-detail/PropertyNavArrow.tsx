@@ -14,7 +14,7 @@ export default function PropertyNavArrow({
   className = "",
 }: PropertyNavArrowProps) {
   const src =
-    direction === "left" ? "/Arrow/left.svg" : "/Arrow/right.svg";
+    direction === "left" ? "/New folder/left.svg" : "/New folder/right.svg";
 
   return (
     <button

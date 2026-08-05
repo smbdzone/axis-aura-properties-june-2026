@@ -80,7 +80,7 @@ export default function Footer() {
           <div className="order-1 flex w-full flex-col items-center gap-6 max-[700px]:gap-5 lg:order-2 lg:gap-8">
             <Link href="/" className="shrink-0">
               <Image
-                src="/logo.svg"
+                src="/Logo.svg"
                 alt="Axis Aura Real Estate"
                 width={148}
                 height={143}

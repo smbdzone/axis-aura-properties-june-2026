@@ -51,8 +51,8 @@ export default function Navbar() {
       <div className="relative z-10 mx-auto flex h-[124px] max-w-[1248px] items-center justify-between min-[1441px]:gap-12">
         <Link href="/" className="shrink-0" onClick={() => setMenuOpen(false)}>
           <Image
-            src="/logo.svg"
-            alt="Suits & Sand Real Estate"
+            src="/Logo.svg"
+            alt="Axis Aura Real Estate"
             width={228}
             height={224}
             priority
