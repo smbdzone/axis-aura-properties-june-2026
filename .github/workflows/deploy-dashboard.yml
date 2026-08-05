@@ -1,0 +1,60 @@
+name: Deploy Dashboard
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'axis-aura-properities-dashbaord-june-2026/**'
+jobs:
+  deploy:
+    permissions:
+      contents: read
+      packages: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: axis-aura-properities-dashbaord-june-2026
+          push: true
+          tags: ghcr.io/smbdzone/axis-aura-dashboard:latest
+          labels: org.opencontainers.image.source=https://github.com/smbdzone/axis-aura-properties-june-2026
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 10m
+          script: |
+            docker login ghcr.io -u ${{ github.actor }} --password ${{ secrets.GHCR_TOKEN }}
+            docker pull ghcr.io/smbdzone/axis-aura-dashboard:latest
+            docker stop axis-aura-dashboard-canary 2>/dev/null || true
+            docker rm axis-aura-dashboard-canary 2>/dev/null || true
+            docker run -d --name axis-aura-dashboard-canary --restart unless-stopped \
+              -p 3014:3000 \
+              --env-file /opt/envs/axis-aura-dashboard.env \
+              ghcr.io/smbdzone/axis-aura-dashboard:latest
+            sleep 15
+            if docker ps --filter "name=axis-aura-dashboard-canary" --filter "status=running" | grep -q axis-aura-dashboard-canary; then
+              docker stop axis-aura-dashboard 2>/dev/null || true
+              docker rm axis-aura-dashboard 2>/dev/null || true
+              docker stop axis-aura-dashboard-canary
+              docker rm axis-aura-dashboard-canary
+              docker run -d --name axis-aura-dashboard --restart unless-stopped \
+                -p 3012:3000 \
+                --env-file /opt/envs/axis-aura-dashboard.env \
+                ghcr.io/smbdzone/axis-aura-dashboard:latest
+              echo "Dashboard deployment successful"
+            else
+              docker stop axis-aura-dashboard-canary 2>/dev/null || true
+              docker rm axis-aura-dashboard-canary 2>/dev/null || true
+              echo "Canary failed — rolled back"
+              exit 1
+            fi

@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Required by the Dockerfile — emits .next/standalone + server.js.
+  output: "standalone",
   images: {
     remotePatterns: [
       {

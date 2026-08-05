@@ -1,0 +1,60 @@
+name: Deploy Backend
+on:
+  push:
+    branches: [main]
+jobs:
+  deploy:
+    permissions:
+      contents: read
+      packages: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: axis-aura-Back-End-june-2026
+          push: true
+          tags: ghcr.io/smbdzone/axis-aura-backend:latest
+          labels: org.opencontainers.image.source=https://github.com/smbdzone/axis-aura-properties-june-2026
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 10m
+          script: |
+            docker login ghcr.io -u ${{ github.actor }} --password ${{ secrets.GHCR_TOKEN }}
+            docker pull ghcr.io/smbdzone/axis-aura-backend:latest
+            docker stop axis-aura-backend-canary 2>/dev/null || true
+            docker rm axis-aura-backend-canary 2>/dev/null || true
+            docker run -d --name axis-aura-backend-canary --restart unless-stopped \
+              -p 5014:5000 \
+              --env-file /opt/envs/axis-aura-backend.env \
+              -v axis-aura-uploads:/app/uploads \
+              ghcr.io/smbdzone/axis-aura-backend:latest
+            sleep 15
+            if docker ps --filter "name=axis-aura-backend-canary" --filter "status=running" | grep -q axis-aura-backend-canary; then
+              docker stop axis-aura-backend 2>/dev/null || true
+              docker rm axis-aura-backend 2>/dev/null || true
+              docker stop axis-aura-backend-canary
+              docker rm axis-aura-backend-canary
+              docker run -d --name axis-aura-backend --restart unless-stopped \
+                -p 5013:5000 \
+                --env-file /opt/envs/axis-aura-backend.env \
+                -v axis-aura-uploads:/app/uploads \
+                ghcr.io/smbdzone/axis-aura-backend:latest
+              echo "Backend deployment successful"
+            else
+              docker stop axis-aura-backend-canary 2>/dev/null || true
+              docker rm axis-aura-backend-canary 2>/dev/null || true
+              echo "Canary failed — rolled back"
+              exit 1
+            fi

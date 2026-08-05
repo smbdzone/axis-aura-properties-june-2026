@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.gitignore
+.env
+.env.*
+npm-debug.log*
+README.md
+Dockerfile*
+.dockerignore
+.github
+docker-compose.yml
+axis-aura-Back-End-june-2026
+axis-aura-properities-dashbaord-june-2026
