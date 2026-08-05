@@ -24,7 +24,7 @@ jobs:
           context: axis-aura-properities-dashbaord-june-2026
           push: true
           build-args: |
-            NEXT_PUBLIC_API_URL=https://api.smbaxis.com
+            NEXT_PUBLIC_API_URL=https://api.axisaura.ae
           tags: ghcr.io/smbdzone/axis-aura-dashboard:latest
           labels: org.opencontainers.image.source=https://github.com/smbdzone/axis-aura-properties-june-2026
       - name: Deploy to VPS
