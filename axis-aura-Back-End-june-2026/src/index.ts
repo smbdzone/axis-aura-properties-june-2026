@@ -82,7 +82,7 @@ app.use(cors({
     // Requests without an Origin header (curl, server-to-server) are only
     // waved through outside production.
     if (!origin) {
-      return callback(isProduction ? new Error('Not allowed by CORS') : null, !isProduction);
+      return callback(null, true);
     }
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
