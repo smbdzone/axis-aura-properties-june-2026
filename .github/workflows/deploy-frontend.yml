@@ -38,8 +38,10 @@ jobs:
             docker pull ghcr.io/smbdzone/axis-aura-frontend:latest
             docker stop axis-aura-frontend-canary 2>/dev/null || true
             docker rm axis-aura-frontend-canary 2>/dev/null || true
+            docker network create axis-aura-net 2>/dev/null || true
             docker run -d --name axis-aura-frontend-canary --restart unless-stopped \
               -p 3013:3000 \
+              --network axis-aura-net \
               --env-file /opt/envs/axis-aura-frontend.env \
               ghcr.io/smbdzone/axis-aura-frontend:latest
             sleep 15
@@ -50,6 +52,7 @@ jobs:
               docker rm axis-aura-frontend-canary
               docker run -d --name axis-aura-frontend --restart unless-stopped \
                 -p 3011:3000 \
+                --network axis-aura-net \
                 --env-file /opt/envs/axis-aura-frontend.env \
                 ghcr.io/smbdzone/axis-aura-frontend:latest
               echo "Frontend deployment successful"

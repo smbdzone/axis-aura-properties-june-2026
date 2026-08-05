@@ -35,8 +35,10 @@ jobs:
             docker pull ghcr.io/smbdzone/axis-aura-backend:latest
             docker stop axis-aura-backend-canary 2>/dev/null || true
             docker rm axis-aura-backend-canary 2>/dev/null || true
+            docker network create axis-aura-net 2>/dev/null || true
             docker run -d --name axis-aura-backend-canary --restart unless-stopped \
               -p 5014:5000 \
+              --network axis-aura-net \
               --env-file /opt/envs/axis-aura-backend.env \
               -v axis-aura-uploads:/app/uploads \
               ghcr.io/smbdzone/axis-aura-backend:latest
@@ -48,6 +50,7 @@ jobs:
               docker rm axis-aura-backend-canary
               docker run -d --name axis-aura-backend --restart unless-stopped \
                 -p 5013:5000 \
+                --network axis-aura-net \
                 --env-file /opt/envs/axis-aura-backend.env \
                 -v axis-aura-uploads:/app/uploads \
                 ghcr.io/smbdzone/axis-aura-backend:latest
