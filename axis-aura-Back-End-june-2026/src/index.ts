@@ -68,6 +68,15 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 
+// Health check route. Registered ahead of CORS deliberately: probes (Docker
+// HEALTHCHECK, nginx, uptime monitors) send no Origin header, which the CORS
+// handler below rejects with a 403 in production. Express short-circuits on the
+// matched route, so this path never reaches that check. Kept after helmet so
+// the response still carries the security headers.
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 app.use(cors({
   origin: function (origin, callback) {
     // Requests without an Origin header (curl, server-to-server) are only
@@ -129,11 +138,6 @@ app.use(
 // Connect to DB. Content pages are created lazily on first request, and can be
 // pre-seeded explicitly with `npm run seed:content-pages` — no boot-time seeding.
 void connectDB();
-
-// Health check route
-app.get('/health', (_req, res) => {
-  res.status(200).json({ status: 'ok' });
-});
 
 // API Routes
 app.use('/api/developers', developerRoutes);
