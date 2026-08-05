@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/api/client";
+import { apiRequest, apiList } from "@/lib/api/client";
 
 export type ApiFaq = {
   _id: string;
@@ -16,7 +16,7 @@ export type FaqPayload = {
 };
 
 export async function fetchFaqs() {
-  return apiRequest<ApiFaq[]>("/api/faqs");
+  return (await apiList<ApiFaq>("/api/faqs")).items;
 }
 
 export async function createFaq(payload: FaqPayload) {

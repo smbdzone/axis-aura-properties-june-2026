@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IUser extends Document {
   fullName: string;
   email: string;
-  password: string; // plain text
+  password: string; // bcrypt hash — never store or accept plaintext
   role: string;
   status: 'active' | 'inactive';
   profilePicture?: string;
@@ -33,7 +33,7 @@ const UserSchema: Schema = new Schema(
   {
     fullName: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String, required: true }, // plain text
+    password: { type: String, required: true, select: true }, // bcrypt hash
     role: {
       type: String,
       enum: ['Super Admin', 'Maintenance', 'Marketing'],

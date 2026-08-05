@@ -7,9 +7,11 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { IoChevronDown } from "react-icons/io5";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useMemo } from "react";
 import {
   dashboardBottomNavItems,
   dashboardMainNavItems,
+  filterNavItems,
   isDashboardNavActive,
   isDashboardNavSubItemActive,
   type DashboardNavItem,
@@ -270,7 +272,18 @@ function SidebarLogoutButton({ onLogout }: { onLogout: () => void }) {
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { logout, can, isSuperAdmin, loading } = useAuth();
+
+  // Hide destinations the user can't open. While the profile is still loading
+  // show nothing rather than the full menu, so items don't disappear on load.
+  const mainNavItems = useMemo(
+    () => (loading ? [] : filterNavItems(dashboardMainNavItems, { can, isSuperAdmin })),
+    [loading, can, isSuperAdmin],
+  );
+  const bottomNavItems = useMemo(
+    () => (loading ? [] : filterNavItems(dashboardBottomNavItems, { can, isSuperAdmin })),
+    [loading, can, isSuperAdmin],
+  );
 
   return (
     <aside className="flex min-h-screen w-[352px] shrink-0 flex-col items-center justify-between border-r-[1.5px] border-[#669BBC] bg-white px-8 py-8">
@@ -301,7 +314,7 @@ export default function Sidebar() {
           aria-label="Dashboard navigation"
           className="flex w-full flex-col items-start gap-3"
         >
-          {dashboardMainNavItems.map((item) =>
+          {mainNavItems.map((item) =>
             item.subItems ? (
               <SidebarNavDropdown
                 key={item.label}
@@ -323,7 +336,7 @@ export default function Sidebar() {
         aria-label="Account navigation"
         className="mx-auto flex w-[288px] flex-col items-start gap-3"
       >
-        {dashboardBottomNavItems.map((item) => (
+        {bottomNavItems.map((item) => (
           <SidebarNavItem
             key={item.label}
             item={item}

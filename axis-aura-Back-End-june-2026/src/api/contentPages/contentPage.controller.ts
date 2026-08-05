@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { getContentPageDefault } from '../../data/contentPageDefaults';
 import { ContentPage } from '../../models/contentPage.model';
+import { sanitizeRichText, stripHtml } from '../../utils/sanitizeHtml';
 
 const ALLOWED_SLUGS = ['privacy-policy', 'terms-and-conditions'] as const;
 type ContentSlug = (typeof ALLOWED_SLUGS)[number];
@@ -18,17 +19,19 @@ function normalizeSections(sections: unknown) {
 
       const title =
         typeof (section as { title?: unknown }).title === 'string'
-          ? (section as { title: string }).title.trim()
+          ? stripHtml((section as { title: string }).title)
           : '';
       const paragraphs = Array.isArray((section as { paragraphs?: unknown }).paragraphs)
         ? (section as { paragraphs: unknown[] }).paragraphs
           .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
           .map((item) => item.trim())
         : [];
+      // Bullets are rendered with dangerouslySetInnerHTML on the public site.
       const bullets = Array.isArray((section as { bullets?: unknown }).bullets)
         ? (section as { bullets: unknown[] }).bullets
           .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
-          .map((item) => item.trim())
+          .map((item) => sanitizeRichText(item.trim()))
+          .filter((item) => item.length > 0)
         : [];
 
       if (!title) return null;

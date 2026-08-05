@@ -1,6 +1,7 @@
 // controllers/notification.controller.ts
 import { Request, Response } from 'express';
 import Notification from '../../models/notification.model';
+import { buildPageMeta, getPagination, MAX_UNPAGINATED } from '../../utils/pagination';
 
 // =============================
 // GET NOTIFICATIONS
@@ -9,8 +10,20 @@ export const getNotifications = async (req: Request, res: Response): Promise<voi
   try {
     const { unread } = req.query;
     const filter = unread === 'true' ? { isRead: false } : {};
-    const notifications = await Notification.find(filter).sort({ createdAt: -1 });
-    res.status(200).json(notifications);
+
+    const pagination = getPagination(req);
+    const query = Notification.find(filter).sort({ createdAt: -1 });
+
+    if (!pagination.paginated) {
+      res.status(200).json(await query.limit(MAX_UNPAGINATED));
+      return;
+    }
+
+    const [notifications, total] = await Promise.all([
+      query.skip(pagination.skip).limit(pagination.limit),
+      Notification.countDocuments(filter),
+    ]);
+    res.status(200).json({ data: notifications, pagination: buildPageMeta(total, pagination) });
   } catch (error) {
     console.error('Get Notifications Error:', error);
     res.status(500).json({ message: 'Server error' });

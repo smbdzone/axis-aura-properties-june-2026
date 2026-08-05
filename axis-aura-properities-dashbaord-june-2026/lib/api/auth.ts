@@ -1,4 +1,5 @@
-import { apiRequest, setAuthToken } from "@/lib/api/client";
+import { apiRequest } from "@/lib/api/client";
+import { normalizePermissions, type PermissionMap } from "@/lib/permissions";
 
 export type AuthUser = {
   fullName: string;
@@ -6,37 +7,35 @@ export type AuthUser = {
   role: string;
   profilePicture?: string;
   phone?: string;
+  permissions?: PermissionMap;
 };
 
 type LoginResponse = {
   success: boolean;
-  token: string;
   role: string;
   user: AuthUser;
 };
 
 type MeResponse = {
-  user: AuthUser & { permissions?: Record<string, unknown>; status?: string };
+  user: Omit<AuthUser, "permissions"> & {
+    permissions?: Record<string, unknown>;
+    status?: string;
+  };
 };
 
 export async function login(email: string, password: string) {
-  const data = await apiRequest<LoginResponse>("/api/auth/login", {
+  // The session cookie is set by the API response; nothing is stored client-side.
+  return apiRequest<LoginResponse>("/api/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
-  setAuthToken(data.token);
-  return data;
 }
 
 export async function logout() {
-  try {
-    await apiRequest("/api/auth/logout", { method: "POST" });
-  } finally {
-    setAuthToken(null);
-  }
+  await apiRequest("/api/auth/logout", { method: "POST" });
 }
 
-export async function fetchCurrentUser() {
+export async function fetchCurrentUser(): Promise<AuthUser> {
   const data = await apiRequest<MeResponse>("/api/auth/me");
-  return data.user;
+  return { ...data.user, permissions: normalizePermissions(data.user.permissions) };
 }

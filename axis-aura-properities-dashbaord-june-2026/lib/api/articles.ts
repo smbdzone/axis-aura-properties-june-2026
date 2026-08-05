@@ -1,4 +1,4 @@
-import { apiFormRequest, apiRequest } from "@/lib/api/client";
+import { apiFormRequest, apiRequest, apiList } from "@/lib/api/client";
 
 export type ApiArticle = {
   _id: string;
@@ -19,7 +19,7 @@ export type ApiArticle = {
 };
 
 export async function fetchArticles() {
-  return apiRequest<ApiArticle[]>("/api/articles");
+  return (await apiList<ApiArticle>("/api/articles")).items;
 }
 
 export async function fetchArticleById(id: string) {

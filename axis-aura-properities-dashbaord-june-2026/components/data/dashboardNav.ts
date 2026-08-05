@@ -1,7 +1,15 @@
+import type { PermissionKey } from "@/lib/permissions";
+
+/**
+ * `permission` / `superAdminOnly` mirror what the API enforces for each area,
+ * so the sidebar only shows destinations the user can actually open.
+ */
 export type DashboardNavSubItem = {
   label: string;
   href: string;
   icon: string;
+  permission?: PermissionKey;
+  superAdminOnly?: boolean;
 };
 
 export type DashboardNavItem = {
@@ -10,6 +18,8 @@ export type DashboardNavItem = {
   icon: string;
   hasChevron?: boolean;
   mutedIcon?: boolean;
+  permission?: PermissionKey;
+  superAdminOnly?: boolean;
   subItems?: DashboardNavSubItem[];
 };
 
@@ -25,16 +35,18 @@ export const propertyFormSections = [
 export type PropertyFormSectionId = (typeof propertyFormSections)[number]["id"];
 
 export const dashboardMainNavItems: DashboardNavItem[] = [
-  { label: "Dashboard", href: "/", icon: "ri:dashboard-fill" },
+  { label: "Dashboard", href: "/", icon: "ri:dashboard-fill", permission: "dashboard" },
   {
     label: "Properties",
     href: "/properties",
     icon: "lsicon:house-filled",
+    permission: "properties",
   },
   {
     label: "News & Regulations",
     href: "/news-and-regulations",
     icon: "fluent:news-16-filled",
+    permission: "newsAndRegulations",
   },
   {
     label: "Client Manager",
@@ -46,26 +58,31 @@ export const dashboardMainNavItems: DashboardNavItem[] = [
         label: "Enquiries",
         href: "/client-manager/enquire",
         icon: "ic:round-task",
+        superAdminOnly: true,
       },
       {
         label: "Newsletters",
         href: "/client-manager/newsletter",
         icon: "mdi:email-newsletter",
+        superAdminOnly: true,
       },
       {
         label: "Jobs List",
         href: "/client-manager/jobs-list",
         icon: "majesticons:suitcase",
+        permission: "jobApplications",
       },
       {
         label: "Contact Us",
         href: "/client-manager/contacts",
         icon: "mdi:message-text",
+        superAdminOnly: true,
       },
       {
         label: "Comments",
         href: "/client-manager/comments",
         icon: "mdi:comment-multiple",
+        permission: "comments",
       },
     ],
   },
@@ -73,8 +90,14 @@ export const dashboardMainNavItems: DashboardNavItem[] = [
     label: "Developers",
     href: "/developers",
     icon: "mingcute:building-6-fill",
+    permission: "developers",
   },
-  { label: "Careers", href: "/careers", icon: "majesticons:suitcase" },
+  {
+    label: "Careers",
+    href: "/careers",
+    icon: "majesticons:suitcase",
+    permission: "careers",
+  },
   {
     label: "Content",
     href: "/content-management",
@@ -85,20 +108,28 @@ export const dashboardMainNavItems: DashboardNavItem[] = [
         label: "FAQs",
         href: "/content-management/faqs",
         icon: "mdi:frequently-asked-questions",
+        permission: "faqs",
       },
       {
         label: "Privacy Policy",
         href: "/content-management/privacy-policy",
         icon: "mdi:shield-lock-outline",
+        superAdminOnly: true,
       },
       {
         label: "Terms & Conditions",
         href: "/content-management/terms-and-conditions",
         icon: "mdi:file-sign",
+        superAdminOnly: true,
       },
     ],
   },
-  { label: "Discover", href: "/discover", icon: "mdi:play-box-multiple" },
+  {
+    label: "Discover",
+    href: "/discover",
+    icon: "mdi:play-box-multiple",
+    superAdminOnly: true,
+  },
 ];
 
 export const dashboardBottomNavItems: DashboardNavItem[] = [
@@ -107,6 +138,7 @@ export const dashboardBottomNavItems: DashboardNavItem[] = [
     href: "/settings",
     icon: "material-symbols:settings-rounded",
     mutedIcon: true,
+    superAdminOnly: true,
   },
 ];
 
@@ -114,6 +146,40 @@ export const dashboardAllNavItems: DashboardNavItem[] = [
   ...dashboardMainNavItems,
   ...dashboardBottomNavItems,
 ];
+
+type NavAccessCheck = {
+  can: (key: PermissionKey, level?: "view" | "edit") => boolean;
+  isSuperAdmin: boolean;
+};
+
+function isNavEntryVisible(
+  entry: { permission?: PermissionKey; superAdminOnly?: boolean },
+  { can, isSuperAdmin }: NavAccessCheck,
+) {
+  if (entry.superAdminOnly) return isSuperAdmin;
+  if (entry.permission) return can(entry.permission, "view");
+  return true;
+}
+
+/**
+ * Drops nav entries the user can't open. A dropdown whose children are all
+ * hidden is dropped too, so no empty menus are left behind.
+ */
+export function filterNavItems(
+  items: DashboardNavItem[],
+  access: NavAccessCheck,
+): DashboardNavItem[] {
+  return items.reduce<DashboardNavItem[]>((visible, item) => {
+    if (item.subItems) {
+      const subItems = item.subItems.filter((subItem) => isNavEntryVisible(subItem, access));
+      if (subItems.length > 0) visible.push({ ...item, subItems });
+      return visible;
+    }
+
+    if (isNavEntryVisible(item, access)) visible.push(item);
+    return visible;
+  }, []);
+}
 
 export function isDashboardNavActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";

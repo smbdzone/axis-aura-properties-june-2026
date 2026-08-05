@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import nodemailer from 'nodemailer';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -7,6 +6,9 @@ import dotenv from 'dotenv';
 import JobApplication from '../../models/jobApplication.model';
 import cloudinary from '../../services/cloudinaryClient';
 import { Readable } from 'stream';
+import { matchesAllowlist, safeFilename } from '../../config/uploadRules';
+import { getMailFrom, getTransporter } from '../../services/mailer';
+import { buildPageMeta, getPagination, MAX_UNPAGINATED } from '../../utils/pagination';
 
 dotenv.config();
 
@@ -16,38 +18,6 @@ if (!fs.existsSync(uploadsDir)) {
 }
 const useCloudinary = process.env.USE_CLOUDINARY === 'true';
 
-const allowedResumeTypes = ['application/pdf'];
-const blockedExecutableTypes = [
-  'application/x-msdownload',
-  'application/x-msdos-program',
-  'application/x-dosexec',
-  'application/x-executable',
-  'application/x-mach-binary',
-  'application/x-sh',
-  'application/x-bat',
-  'application/x-csh',
-  'application/x-msi',
-  'application/java-archive',
-  'application/javascript',
-  'text/javascript',
-  'text/x-shellscript',
-];
-const blockedExecutableExtensions = [
-  '.exe',
-  '.bat',
-  '.cmd',
-  '.com',
-  '.msi',
-  '.dll',
-  '.sh',
-  '.bash',
-  '.zsh',
-  '.ps1',
-  '.jar',
-  '.js',
-  '.vbs',
-  '.scr',
-];
 
 // Multer storage config
 const storage = useCloudinary
@@ -55,31 +25,27 @@ const storage = useCloudinary
   : multer.diskStorage({
     destination: uploadsDir,
     filename: (_, file, cb) => {
-      cb(null, Date.now() + path.extname(file.originalname));
+      cb(null, safeFilename(file));
     },
   });
 
+// This endpoint is public, so the filter is strict: mimetype AND extension must
+// both be PDF. The previous check used OR, so `resume.pdf` with an HTML mimetype
+// (or an .html file declaring application/pdf) was accepted.
 const fileFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const filename = (file.originalname || '').toLowerCase();
-  const isBlockedByType = blockedExecutableTypes.includes(file.mimetype);
-  const isBlockedByExt = blockedExecutableExtensions.some((ext) => filename.endsWith(ext));
-  if (isBlockedByType || isBlockedByExt) {
-    return cb(new Error('Executable files are not allowed.'));
+  if (file.fieldname !== 'resume') {
+    return cb(new Error(`Unexpected file field: ${file.fieldname}`));
   }
-
-  const isPdf =
-    allowedResumeTypes.includes(file.mimetype) || filename.endsWith('.pdf');
-  if (!isPdf) {
+  if (!matchesAllowlist(file, ['application/pdf'], ['.pdf'])) {
     return cb(new Error('Only PDF resumes are allowed.'));
   }
-
   cb(null, true);
 };
 
 export const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 3 * 1024 * 1024 },
+  limits: { fileSize: 3 * 1024 * 1024, files: 1 },
 }).single('resume');
 
 const uploadResumeToCloudinary = async (file: Express.Multer.File): Promise<string> =>
@@ -153,18 +119,11 @@ export const submitApplication = async (req: Request, res: Response): Promise<vo
     });
 
     // Best-effort email notification — never block a successful submission.
-    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    const transporter = getTransporter();
+    if (transporter) {
       try {
-        const transporter = nodemailer.createTransport({
-          service: 'Gmail',
-          auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
-          },
-        });
-
         await transporter.sendMail({
-          from: process.env.EMAIL_USER,
+          from: getMailFrom(),
           to: process.env.EMAIL_TO,
           subject: `New Job Application: ${resolvedFullName}`,
           text: `
@@ -197,10 +156,21 @@ ${resolvedCoverLetter}
   }
 };
 
-export const getApplications = async (_req: Request, res: Response): Promise<void> => {
+export const getApplications = async (req: Request, res: Response): Promise<void> => {
   try {
-    const applications = await JobApplication.find().sort({ createdAt: -1 });
-    res.status(200).json(applications);
+    const pagination = getPagination(req);
+    const query = JobApplication.find().sort({ createdAt: -1 });
+
+    if (!pagination.paginated) {
+      res.status(200).json(await query.limit(MAX_UNPAGINATED));
+      return;
+    }
+
+    const [applications, total] = await Promise.all([
+      query.skip(pagination.skip).limit(pagination.limit),
+      JobApplication.countDocuments(),
+    ]);
+    res.status(200).json({ data: applications, pagination: buildPageMeta(total, pagination) });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch applications' });
   }

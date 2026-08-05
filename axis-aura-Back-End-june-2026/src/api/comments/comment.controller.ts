@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import Comment from '../../models/comment.model';
 import Notification from '../../models/notification.model';
+import { stripHtml } from '../../utils/sanitizeHtml';
+import { buildPageMeta, getPagination, MAX_UNPAGINATED } from '../../utils/pagination';
 
 // =============================
 // GET ALL COMMENTS FOR ADMIN
@@ -8,10 +10,21 @@ import Notification from '../../models/notification.model';
 export const getAllCommentsForAdmin = async (req: Request, res: Response): Promise<void> => {
   try {
     const status = req.query.status as string | undefined;
-    const query = status && ['pending', 'approved', 'rejected'].includes(status) ? { status } : {};
+    const filter = status && ['pending', 'approved', 'rejected'].includes(status) ? { status } : {};
 
-    const comments = await Comment.find(query).sort({ createdAt: -1 });
-    res.status(200).json(comments);
+    const pagination = getPagination(req);
+    const query = Comment.find(filter).sort({ createdAt: -1 });
+
+    if (!pagination.paginated) {
+      res.status(200).json(await query.limit(MAX_UNPAGINATED));
+      return;
+    }
+
+    const [comments, total] = await Promise.all([
+      query.skip(pagination.skip).limit(pagination.limit),
+      Comment.countDocuments(filter),
+    ]);
+    res.status(200).json({ data: comments, pagination: buildPageMeta(total, pagination) });
   } catch (error) {
     console.error('Get All Comments For Admin Error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -83,11 +96,21 @@ export const createComment = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
+    // Anonymous input — store as plain text only.
+    const safeUsername = stripHtml(username).slice(0, 120);
+    const safeEmail = stripHtml(email).slice(0, 254);
+    const safeContent = stripHtml(content).slice(0, 5000);
+
+    if (!safeUsername || !safeEmail || !safeContent) {
+      res.status(400).json({ message: 'Missing required fields.' });
+      return;
+    }
+
     const comment = new Comment({
       articleId: articleId || null,
-      username,
-      email,
-      content,
+      username: safeUsername,
+      email: safeEmail,
+      content: safeContent,
       parentId: parentId || null,
       status: 'pending',
     });
@@ -98,12 +121,12 @@ export const createComment = async (req: Request, res: Response): Promise<void> 
       const notification = new Notification({
         type: 'comment',
         user: {
-          name: username,
+          name: safeUsername,
           avatar: '',
         },
         articleId: articleId || undefined,
         articleTitle: 'News & Regulations',
-        description: `${username} commented: "${String(content).substring(0, 50)}..."`,
+        description: `${safeUsername} commented: "${safeContent.substring(0, 50)}..."`,
       });
       await notification.save();
     } catch (notificationError) {

@@ -10,6 +10,17 @@ import {
   getRolePermissions,
   updateRolePermissions,
 } from './user.controller';
+import {
+  authenticate,
+  requirePermission,
+  requireSuperAdmin,
+} from '../../middleware/auth.middleware';
+import {
+  IMAGE_EXTENSIONS,
+  IMAGE_MIME_TYPES,
+  matchesAllowlist,
+  safeFilename,
+} from '../../config/uploadRules';
 
 const router = express.Router();
 const useCloudinary = process.env.USE_CLOUDINARY === 'true';
@@ -22,34 +33,40 @@ const storage = useCloudinary
       cb(null, path.join(__dirname, '..', '..', '..', 'uploads')); // Adjust as needed
     },
     filename(req, file, cb) {
-      cb(null, Date.now() + path.extname(file.originalname));
+      cb(null, safeFilename(file));
     },
   });
 
-// === File Filter ===
-const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
+// === File Filter (allowlist) ===
 const fileFilter = (
   req: Express.Request,
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
-  if (file.fieldname === 'profilePicture') {
-    if (allowedImageTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      return cb(new Error('Only jpeg, png, and webp formats allowed for profile pictures.'));
-    }
-  } else {
-    cb(null, true);
+  if (file.fieldname !== 'profilePicture') {
+    return cb(new Error(`Unexpected file field: ${file.fieldname}`));
   }
+  if (!matchesAllowlist(file, IMAGE_MIME_TYPES, IMAGE_EXTENSIONS)) {
+    return cb(new Error('Only jpeg, png, webp, gif, or avif images are allowed.'));
+  }
+  cb(null, true);
 };
 
-const upload = multer({ storage, fileFilter });
+const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024, files: 1 } });
 
 // === Routes ===
+// Every route here is privileged; nothing is public.
+router.use(authenticate);
+
+// Rewriting the permission matrix itself is Super Admin only — a user with
+// manageUsers.edit must not be able to grant themselves more access.
+router.get('/permissions/roles', requireSuperAdmin, getRolePermissions);
+router.put('/permissions/roles/:role', requireSuperAdmin, updateRolePermissions);
+
+// Account administration follows the manageUsers permission.
+router.use(requirePermission('manageUsers'));
+
 router.get('/', getUsers);
-router.get('/permissions/roles', getRolePermissions);
-router.put('/permissions/roles/:role', updateRolePermissions);
 router.post('/', upload.single('profilePicture'), createUser);
 router.put('/:id', upload.single('profilePicture'), updateUser);
 router.get('/:id', getUserById);

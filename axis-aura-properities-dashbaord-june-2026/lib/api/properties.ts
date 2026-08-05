@@ -1,4 +1,4 @@
-import { apiFormRequest, apiRequest } from "@/lib/api/client";
+import { apiFormRequest, apiRequest, apiList } from "@/lib/api/client";
 
 export type ApiFeature = {
   id?: string;
@@ -60,7 +60,7 @@ export type ApiProperty = {
 };
 
 export async function fetchProperties() {
-  return apiRequest<ApiProperty[]>("/api/properties");
+  return (await apiList<ApiProperty>("/api/properties")).items;
 }
 
 export async function fetchPropertyById(id: string) {

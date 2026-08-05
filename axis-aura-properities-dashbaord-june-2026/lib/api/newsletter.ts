@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/api/client";
+import { apiRequest, apiList } from "@/lib/api/client";
 
 export type ApiNewsletterSubscriber = {
   id: string;
@@ -7,7 +7,7 @@ export type ApiNewsletterSubscriber = {
 };
 
 export async function fetchNewsletterSubscribers() {
-  return apiRequest<ApiNewsletterSubscriber[]>("/api/newsletter");
+  return (await apiList<ApiNewsletterSubscriber>("/api/newsletter")).items;
 }
 
 export async function deleteNewsletterSubscriber(id: string) {

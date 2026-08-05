@@ -9,6 +9,14 @@ import {
   deleteDiscover,
 } from './discover.controller';
 import { authenticate, requireSuperAdmin } from '../../middleware/auth.middleware';
+import {
+  IMAGE_EXTENSIONS,
+  IMAGE_MIME_TYPES,
+  VIDEO_EXTENSIONS,
+  VIDEO_MIME_TYPES,
+  matchesAllowlist,
+  safeFilename,
+} from '../../config/uploadRules';
 
 const router = express.Router();
 const useCloudinary = process.env.USE_CLOUDINARY === 'true';
@@ -21,7 +29,7 @@ const storage = useCloudinary
         cb(null, path.join(__dirname, '..', '..', '..', 'uploads'));
       },
       filename(req, file, cb) {
-        cb(null, Date.now() + '-' + Math.round(Math.random() * 1e9) + path.extname(file.originalname));
+        cb(null, safeFilename(file));
       },
     });
 
@@ -31,28 +39,25 @@ const fileFilter = (
   cb: multer.FileFilterCallback,
 ) => {
   if (file.fieldname === 'video') {
-    if (file.mimetype.startsWith('video/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only video files are allowed for the video field.'));
+    if (!matchesAllowlist(file, VIDEO_MIME_TYPES, VIDEO_EXTENSIONS)) {
+      return cb(new Error('Only mp4, webm, or mov videos are allowed.'));
     }
-    return;
+    return cb(null, true);
   }
 
   if (file.fieldname === 'thumbnail') {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed for the thumbnail.'));
+    // `image/*` previously allowed image/svg+xml through.
+    if (!matchesAllowlist(file, IMAGE_MIME_TYPES, IMAGE_EXTENSIONS)) {
+      return cb(new Error('Only jpeg, png, webp, gif, or avif images are allowed.'));
     }
-    return;
+    return cb(null, true);
   }
 
-  cb(null, true);
+  return cb(new Error(`Unexpected file field: ${file.fieldname}`));
 };
 
 // Allow up to 150MB video uploads
-const upload = multer({ storage, fileFilter, limits: { fileSize: 150 * 1024 * 1024 } });
+const upload = multer({ storage, fileFilter, limits: { fileSize: 150 * 1024 * 1024, files: 2 } });
 
 const uploadFields = upload.fields([
   { name: 'video', maxCount: 1 },

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import Discover from '../../models/discover.model';
 import cloudinary from '../../services/cloudinaryClient';
 import { Readable } from 'stream';
+import { MAX_UNPAGINATED } from '../../utils/pagination';
 
 const useCloudinary = process.env.USE_CLOUDINARY === 'true';
 
@@ -43,7 +44,7 @@ const resolveUploadedUrl = async (
 // =============================
 export const getDiscoverItems = async (_req: Request, res: Response): Promise<void> => {
   try {
-    const items = await Discover.find().sort({ order: 1, createdAt: -1 }).lean();
+    const items = await Discover.find().sort({ order: 1, createdAt: -1 }).limit(MAX_UNPAGINATED).lean();
     res.json(items);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });

@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { Article } from '../../models/article.model';
 import cloudinary from '../../services/cloudinaryClient';
 import { Readable } from 'stream';
+import { sanitizeRichText, stripHtml } from '../../utils/sanitizeHtml';
+import { buildPageMeta, getPagination, MAX_UNPAGINATED } from '../../utils/pagination';
 
 const normalizeBannerUrl = (url?: string): string => {
   if (!url) return '';
@@ -18,15 +20,25 @@ const generateSlug = (value: string): string =>
 
 export const getArticles = async (req: Request, res: Response): Promise<void> => {
   try {
-    const articles = await Article.find();
-    const normalizedArticles = articles.map((article) => {
+    const pagination = getPagination(req);
+    const query = Article.find().sort({ createdAt: -1 });
+
+    const normalize = (article: { toObject: () => Record<string, unknown> }) => {
       const plain = article.toObject();
-      return {
-        ...plain,
-        bannerUrl: normalizeBannerUrl(plain.bannerUrl),
-      };
-    });
-    res.json(normalizedArticles);
+      return { ...plain, bannerUrl: normalizeBannerUrl(plain.bannerUrl as string | undefined) };
+    };
+
+    if (!pagination.paginated) {
+      const articles = await query.limit(MAX_UNPAGINATED);
+      res.json(articles.map(normalize));
+      return;
+    }
+
+    const [articles, total] = await Promise.all([
+      query.skip(pagination.skip).limit(pagination.limit),
+      Article.countDocuments(),
+    ]);
+    res.json({ data: articles.map(normalize), pagination: buildPageMeta(total, pagination) });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -120,15 +132,17 @@ export const createArticle = async (req: Request, res: Response): Promise<void> 
       }
     }
 
+    const safeDescription = sanitizeRichText(description);
+
     const newArticle = new Article({
-      title,
+      title: stripHtml(title),
       slug: slug || generateSlug(title),
       category,
       bannerUrl: bannerUrl || undefined,
-      description,
-      imageAlt: imageAlt || title,
-      seoTitle: seoTitle || title,
-      seoDescription: seoDescription || description,
+      description: safeDescription,
+      imageAlt: stripHtml(imageAlt) || stripHtml(title),
+      seoTitle: stripHtml(seoTitle) || stripHtml(title),
+      seoDescription: sanitizeRichText(seoDescription) || safeDescription,
       seoImageUrl: seoImageUrl || undefined,
       articleSchemas: articleSchemas
         ? (typeof articleSchemas === "string" ? JSON.parse(articleSchemas) : articleSchemas)
@@ -167,13 +181,13 @@ export const updateArticle = async (req: Request, res: Response): Promise<void> 
     const seoImageFile = files?.seoImage?.[0];
 
     const updateData: Record<string, unknown> = {
-      title,
+      title: stripHtml(title),
       slug: slug || generateSlug(title),
       category,
-      description,
-      imageAlt,
-      seoTitle,
-      seoDescription,
+      description: sanitizeRichText(description),
+      imageAlt: stripHtml(imageAlt),
+      seoTitle: stripHtml(seoTitle),
+      seoDescription: sanitizeRichText(seoDescription),
       articleSchemas,
     };
 

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
-import nodemailer from 'nodemailer';
 import EmailModel from '../../models/email.model';
+import { getMailFrom, getTransporter } from '../../services/mailer';
+import { buildPageMeta, getPagination, MAX_UNPAGINATED } from '../../utils/pagination';
 
 export const subscribeNewsletter = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -21,19 +22,17 @@ export const subscribeNewsletter = async (req: Request, res: Response): Promise<
     const newSubscription = new EmailModel({ email });
     await newSubscription.save();
 
-    const transporter = nodemailer.createTransport({
-      service: 'Gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    // Best-effort email notifications; never block the subscription on mail failures.
+    try {
+      const transporter = getTransporter();
+      if (transporter) {
+        const mailFrom = getMailFrom();
 
-    const senderMailPromise = transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: 'Newsletter subscription confirmed - Suits and Sand',
-      text: `Hi,
+        const senderMailPromise = transporter.sendMail({
+          from: mailFrom,
+          to: email,
+          subject: 'Newsletter subscription confirmed - Suits and Sand',
+          text: `Hi,
 
 Thanks for subscribing to the Suits and Sand newsletter.
 
@@ -41,18 +40,22 @@ You will receive the latest updates on listings, insights, and company news.
 
 Best regards,
 Suits and Sand`,
-    });
+        });
 
-    const receiverMailPromise = transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_TO || process.env.EMAIL_USER,
-      subject: 'New Newsletter Subscription',
-      text: `A new user subscribed to the newsletter.
+        const receiverMailPromise = transporter.sendMail({
+          from: mailFrom,
+          to: process.env.EMAIL_TO || mailFrom,
+          subject: 'New Newsletter Subscription',
+          text: `A new user subscribed to the newsletter.
 
 Subscriber email: ${email}`,
-    });
+        });
 
-    await Promise.all([senderMailPromise, receiverMailPromise]);
+        await Promise.all([senderMailPromise, receiverMailPromise]);
+      }
+    } catch (mailError) {
+      console.error('Newsletter email notification failed:', mailError);
+    }
 
     res.status(201).json({ message: 'Subscribed successfully', subscription: newSubscription });
   } catch (error) {
@@ -63,8 +66,11 @@ Subscriber email: ${email}`,
 
 export const getNewsletterSubscribers = async (req: Request, res: Response): Promise<void> => {
   try {
-    const subscribers = await EmailModel.find({}, { email: 1, date: 1 }).lean();
-    const formattedSubscribers = subscribers.map(sub => ({
+    const pagination = getPagination(req);
+    const query = EmailModel.find({}, { email: 1, date: 1 }).sort({ date: -1 }).lean();
+
+    type SubscriberDoc = { _id: unknown; email: string; date: Date | string };
+    const format = (sub: SubscriberDoc) => ({
       id: String(sub._id),
       email: sub.email,
       date: new Date(sub.date).toLocaleDateString('en-US', {
@@ -72,9 +78,19 @@ export const getNewsletterSubscribers = async (req: Request, res: Response): Pro
         month: 'long',
         year: 'numeric',
       }),
-    }));
+    });
 
-    res.status(200).json(formattedSubscribers);
+    if (!pagination.paginated) {
+      const subscribers = (await query.limit(MAX_UNPAGINATED)) as unknown as SubscriberDoc[];
+      res.status(200).json(subscribers.map(format));
+      return;
+    }
+
+    const [subscribers, total] = await Promise.all([
+      query.skip(pagination.skip).limit(pagination.limit) as unknown as Promise<SubscriberDoc[]>,
+      EmailModel.countDocuments(),
+    ]);
+    res.status(200).json({ data: subscribers.map(format), pagination: buildPageMeta(total, pagination) });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

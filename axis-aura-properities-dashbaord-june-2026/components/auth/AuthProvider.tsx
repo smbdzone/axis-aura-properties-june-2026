@@ -15,11 +15,19 @@ import {
   logout as logoutRequest,
   type AuthUser,
 } from "@/lib/api/auth";
-import { setAuthToken } from "@/lib/api/client";
+import {
+  hasPermission,
+  SUPER_ADMIN_ROLE,
+  type PermissionKey,
+  type PermissionLevel,
+} from "@/lib/permissions";
 
 type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
+  isSuperAdmin: boolean;
+  /** Mirrors the API guard — use it to hide controls that would 403. */
+  can: (key: PermissionKey, level?: PermissionLevel) => boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -38,7 +46,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(profile);
     } catch {
       setUser(null);
-      setAuthToken(null);
     }
   }, []);
 
@@ -48,10 +55,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      const data = await loginRequest(email, password);
-      setUser(data.user);
+      await loginRequest(email, password);
+      // Re-read the profile so permissions are present; the login response
+      // deliberately carries no token and no matrix.
+      await refreshUser();
     },
-    [],
+    [refreshUser],
   );
 
   const logout = useCallback(async () => {
@@ -60,9 +69,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push("/login");
   }, [router]);
 
+  const can = useCallback(
+    (key: PermissionKey, level: PermissionLevel = "view") =>
+      hasPermission(user?.role, user?.permissions, key, level),
+    [user],
+  );
+
+  const isSuperAdmin = user?.role === SUPER_ADMIN_ROLE;
+
   const value = useMemo(
-    () => ({ user, loading, login, logout, refreshUser }),
-    [user, loading, login, logout, refreshUser],
+    () => ({ user, loading, isSuperAdmin, can, login, logout, refreshUser }),
+    [user, loading, isSuperAdmin, can, login, logout, refreshUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

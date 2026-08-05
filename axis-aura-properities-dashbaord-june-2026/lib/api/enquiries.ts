@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/api/client";
+import { apiRequest, apiList } from "@/lib/api/client";
 
 export type ApiEnquiry = {
   _id: string;
@@ -13,7 +13,7 @@ export type ApiEnquiry = {
 };
 
 export async function fetchEnquiries() {
-  return apiRequest<ApiEnquiry[]>("/api/enquiries");
+  return (await apiList<ApiEnquiry>("/api/enquiries")).items;
 }
 
 export async function deleteEnquiry(id: string) {

@@ -17,6 +17,7 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import SortDataDropdown from "@/components/ui/SortDataDropdown";
 import { toast } from "sonner";
 import PropertyModal from "./PropertyModal";
+import PermissionGate from "@/components/auth/PermissionGate";
 
 const PAGE_SIZE = 6;
 
@@ -262,6 +263,7 @@ export default function PropertyPage() {
 
       <div className="mx-auto flex w-full flex-col gap-8 p-8">
         <div className="flex flex-wrap items-center justify-end gap-4">
+          <PermissionGate permission="properties" level="edit">
           <Link
             href="/properties/add"
             className="relative isolate flex h-[46px] w-[189px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border-[1.5px] border-accent-light px-5 py-3"
@@ -272,6 +274,7 @@ export default function PropertyPage() {
               Add a Property
             </span>
           </Link>
+          </PermissionGate>
         </div>
 
         <div className="flex w-full flex-col gap-6 rounded-2xl border-[1.5px] border-accent-light p-4">
@@ -281,6 +284,7 @@ export default function PropertyPage() {
             </h1>
 
             <div className="flex items-center gap-4">
+              <PermissionGate permission="properties" level="edit">
               <button
                 type="button"
                 aria-label="Delete selected properties"
@@ -289,6 +293,7 @@ export default function PropertyPage() {
               >
                 <Icon icon="fluent:delete-16-regular" width={20} height={20} />
               </button>
+              </PermissionGate>
 
               <span
                 className="h-7 w-0 border-l-2 border-accent-light"

@@ -3,6 +3,7 @@ import Property from '../../models/property.model';
 import { IProperty } from '../../models/property.model';
 import cloudinary from '../../services/cloudinaryClient';
 import { Readable } from 'stream';
+import { buildPageMeta, getPagination, MAX_UNPAGINATED } from '../../utils/pagination';
 
 const useCloudinary = process.env.USE_CLOUDINARY === 'true';
 
@@ -228,10 +229,21 @@ export const createProperty = async (req: Request, res: Response): Promise<void>
   }
 };
 
-export const getProperties = async (_req: Request, res: Response): Promise<void> => {
+export const getProperties = async (req: Request, res: Response): Promise<void> => {
   try {
-    const properties = await Property.find();
-    res.json(properties);
+    const pagination = getPagination(req);
+    const query = Property.find().sort({ createdAt: -1 });
+
+    if (!pagination.paginated) {
+      res.json(await query.limit(MAX_UNPAGINATED));
+      return;
+    }
+
+    const [properties, total] = await Promise.all([
+      query.skip(pagination.skip).limit(pagination.limit),
+      Property.countDocuments(),
+    ]);
+    res.json({ data: properties, pagination: buildPageMeta(total, pagination) });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
