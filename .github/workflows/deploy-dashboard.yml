@@ -39,8 +39,10 @@ jobs:
             docker pull ghcr.io/smbdzone/axis-aura-dashboard:latest
             docker stop axis-aura-dashboard-canary 2>/dev/null || true
             docker rm axis-aura-dashboard-canary 2>/dev/null || true
+            docker network create axis-aura-net 2>/dev/null || true
             docker run -d --name axis-aura-dashboard-canary --restart unless-stopped \
               -p 3014:3000 \
+              --network axis-aura-net \
               --env-file /opt/envs/axis-aura-dashboard.env \
               ghcr.io/smbdzone/axis-aura-dashboard:latest
             sleep 15
@@ -51,6 +53,7 @@ jobs:
               docker rm axis-aura-dashboard-canary
               docker run -d --name axis-aura-dashboard --restart unless-stopped \
                 -p 3012:3000 \
+                --network axis-aura-net \
                 --env-file /opt/envs/axis-aura-dashboard.env \
                 ghcr.io/smbdzone/axis-aura-dashboard:latest
               echo "Dashboard deployment successful"
